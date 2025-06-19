@@ -1,0 +1,62 @@
+# Ubuntu 24.04
+FROM ros:jazzy AS vrx-base
+
+# Workaround from https://discourse.ros.org/t/ros-signing-key-migration-guide/43937
+RUN rm -f \
+    /etc/apt/sources.list.d/ros2-latest.list \
+    /usr/share/keyrings/ros2-latest-archive-keyring.gpg
+
+# Only install ros2-apt-source if it's not already installed
+RUN --mount=type=cache,target=/var/cache/apt \
+    if ! dpkg -l | grep -q ros2-apt-source; then \
+    apt-get update && \
+    apt-get install -y ca-certificates curl && \
+    export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}') && \
+    curl -L -s -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo $VERSION_CODENAME)_all.deb" && \
+    apt-get update && \
+    apt-get install /tmp/ros2-apt-source.deb && \
+    rm -f /tmp/ros2-apt-source.deb; \
+  fi
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Setup timezone
+ENV TZ=Etc/UTC
+RUN --mount=type=cache,target=/var/cache/apt \
+    echo $TZ > /etc/timezone && \
+    ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && \
+    apt update && \
+    apt install -y locales && \
+    locale-gen en_US en_US.UTF-8 && \
+    update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+
+# Set up repo to install Gazebo
+RUN curl -s https://packages.osrfoundation.org/gazebo.gpg -o /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
+
+# Install some 'standard' ROS packages and utilities.
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt update \
+    && apt install -y --no-install-recommends \
+       gz-harmonic \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt clean -qq
+
+FROM vrx-base AS vrx-builder
+
+COPY .package_xml_cache /ws/src/
+
+RUN --mount=type=cache,target=/var/cache/apt \
+    . /opt/ros/${ROS_DISTRO}/setup.sh \
+    && apt update \
+    && PIP_BREAK_SYSTEM_PACKAGES=1 \
+      rosdep install -r \
+      --from-paths /ws/src/ \
+      --ignore-src \
+      --rosdistro ${ROS_DISTRO} -y
+
+COPY . /ws/src/
+# Build the project
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
+    && cd /ws \
+    && colcon build --symlink-install --merge-install

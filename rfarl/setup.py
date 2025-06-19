@@ -1,11 +1,11 @@
-from setuptools import setup
+from setuptools import find_packages, setup
 
 PACKAGE_NAME = 'rfarl'
 
 setup(
     name=PACKAGE_NAME,
     version='0.1.0',
-    packages=[],
+    packages=find_packages(),
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + PACKAGE_NAME]),
         ('share/' + PACKAGE_NAME, ['package.xml']),
@@ -17,7 +17,8 @@ setup(
     author_email='xlin26@stevens.edu',
     maintainer='Xi Lin',
     maintainer_email='xlin26@stevens.edu',
-    tags=[
+    description='Robust Field Autonomy Reinforcement-Learning',
+    keywords=[
         'reinforcement-learning',
     ],
     classifiers=[
@@ -25,5 +26,7 @@ setup(
         'Topic :: Scientific/Engineering :: Artificial Intelligence'
     ],
     license='MIT',
-    entry_points={},
+    entry_points={
+        'console_scripts': []
+    },
 )

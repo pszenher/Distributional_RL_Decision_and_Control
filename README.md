@@ -3,7 +3,7 @@
 This repository provides the code implementation of our RA-L paper [here](https://arxiv.org/abs/2412.09466). We developed an ASV decision making and control policy based on Actor Critic Implicit Quantile Networks (AC-IQN), and integrated it into a navigation system that works in congested multi-vehicle environments, under the influence of wind and wave disturbances on ASV motion and perception. The performance of our approach is shown in the video [here](https://robustfieldautonomylab.github.io/Lin_RA-L_2024_10-FinalVideo.mp4).  
 
 <p align="center">
-<img width="890" height="480" src="AC_IQN_based_system.jpg"> 
+<img width="890" height="480" src="images/AC_IQN_based_system.jpg"> 
 </p>
 
 If you find this repository useful, please cite our paper

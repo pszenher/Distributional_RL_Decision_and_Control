@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>virelex</name>
+  <version>0.1.0</version>
+  <description>
+    A ROS 2 package for:
+
+    - planning actions (action_planner)
+    - detecting collisions (collision_detector)
+    - processing LiDAR point clouds (lidar_processor)
+    - computing robot state (state_processor)
+    
+    - customized message format for LiDAR point clouds (cluster_msg)
+    - customized message format for robot info (robot_info_msg)
+    - customized message format for state information (state_msg)
+    
+  </description>
+  <author email="xlin26@stevens.edu">Xi Lin</author>
+  <maintainer email="xlin26@stevens.edu">Xi Lin</maintainer>
+  <license>Apache License 2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+  <member_of_group>rosidl_interface_packages</member_of_group>
+
+  <depend>rclcpp</depend>
+  <depend>message_filters</depend>
+
+  <depend>geometry_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

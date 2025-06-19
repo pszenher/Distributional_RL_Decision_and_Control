@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
+
 include(FetchContent)
 
 # Set DOWNLOAD_EXTRACT_TIMESTAMP by default

@@ -1,7 +1,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/imu.hpp"
-#include "cluster_msg/msg/point_cloud_cluster.hpp"
-#include "state_msg/msg/state.hpp"
+#include "virelex/msg/point_cloud_cluster.hpp"
+#include "virelex/msg/state.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/twist.hpp>
@@ -45,18 +45,18 @@ public:
     StateProcessorNode(const std::string& robot_name, const std::string& robot_goal) : Node("state_processor_node_" + robot_name) {
         odometry_subscriber_ = std::make_shared<message_filters::Subscriber<nav_msgs::msg::Odometry>>(
             this, "/"+robot_name+"/sensors/position/ground_truth_odometry");
-        lidar_subscriber_ = std::make_shared<message_filters::Subscriber<cluster_msg::msg::PointCloudCluster>>(
+        lidar_subscriber_ = std::make_shared<message_filters::Subscriber<virelex::msg::PointCloudCluster>>(
             this, "/"+robot_name+"/sensors/lidars/lidar_wamv_sensor/clusters");
 
         // Synchronize Odometry and LiDAR messages based on timestamps
-        time_sync_ = std::make_shared<message_filters::TimeSynchronizer<nav_msgs::msg::Odometry, cluster_msg::msg::PointCloudCluster>>(*odometry_subscriber_, *lidar_subscriber_, 10);
+        time_sync_ = std::make_shared<message_filters::TimeSynchronizer<nav_msgs::msg::Odometry, virelex::msg::PointCloudCluster>>(*odometry_subscriber_, *lidar_subscriber_, 10);
         time_sync_->registerCallback(&StateProcessorNode::synchronizeCallback, this);
 
         // Publisher for synchronized timestamps
         // timestamp_publisher_ = this->create_publisher<std_msgs::msg::String>("/"+robot_name+"/sync_timestamp", 10);
 
         // State publisher
-        state_publisher_ = this->create_publisher<state_msg::msg::State>("/"+robot_name+"/robot_state", 10);
+        state_publisher_ = this->create_publisher<virelex::msg::State>("/"+robot_name+"/robot_state", 10);
 
         // if(robot_name == "wamv1") print_latency = true;
         // else print_latency = false;
@@ -79,7 +79,7 @@ public:
     }
 
 private:
-    void synchronizeCallback(const nav_msgs::msg::Odometry::SharedPtr odometry_msg, const cluster_msg::msg::PointCloudCluster::SharedPtr lidar_msg) {
+    void synchronizeCallback(const nav_msgs::msg::Odometry::SharedPtr odometry_msg, const virelex::msg::PointCloudCluster::SharedPtr lidar_msg) {
         // Your synchronization logic goes here
         // Access odometry_msg and lidar_msg data for processing
 
@@ -111,7 +111,7 @@ private:
         }
 
         // Create state message and publish
-        state_msg::msg::State state;
+        virelex::msg::State state;
         state.header = lidar_msg->header;
         
         geometry_msgs::msg::Point goal;
@@ -145,7 +145,7 @@ private:
     }
 
     void computeClusterVelocities(const nav_msgs::msg::Odometry::SharedPtr odometry_msg,
-                                  const cluster_msg::msg::PointCloudCluster::SharedPtr lidar_msg,
+                                  const virelex::msg::PointCloudCluster::SharedPtr lidar_msg,
                                   std::vector<geometry_msgs::msg::Point>& cluster_velocities, float diff_time){
         
         if(last_lidar_msg->cluster_centroids.size() == 0 || lidar_msg->cluster_centroids.size() == 0) return;
@@ -260,14 +260,14 @@ private:
     }
 
     std::shared_ptr<message_filters::Subscriber<nav_msgs::msg::Odometry>> odometry_subscriber_;
-    std::shared_ptr<message_filters::Subscriber<cluster_msg::msg::PointCloudCluster>> lidar_subscriber_;
-    std::shared_ptr<message_filters::TimeSynchronizer<nav_msgs::msg::Odometry, cluster_msg::msg::PointCloudCluster>> time_sync_;
+    std::shared_ptr<message_filters::Subscriber<virelex::msg::PointCloudCluster>> lidar_subscriber_;
+    std::shared_ptr<message_filters::TimeSynchronizer<nav_msgs::msg::Odometry, virelex::msg::PointCloudCluster>> time_sync_;
     // rclcpp::Publisher<std_msgs::msg::String>::SharedPtr timestamp_publisher_;
-    rclcpp::Publisher<state_msg::msg::State>::SharedPtr state_publisher_;
+    rclcpp::Publisher<virelex::msg::State>::SharedPtr state_publisher_;
     
     bool print_latency;
     nav_msgs::msg::Odometry::SharedPtr last_odometry_msg;
-    cluster_msg::msg::PointCloudCluster::SharedPtr last_lidar_msg;
+    virelex::msg::PointCloudCluster::SharedPtr last_lidar_msg;
     std::chrono::time_point<std::chrono::steady_clock> lastMessageTime_; // clock time of last message
 
     float max_robot_speed;

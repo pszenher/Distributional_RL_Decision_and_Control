@@ -1,4 +1,4 @@
-import marinenav_env.envs.marinenav_env as marinenav_env
+import rafrl.envs.marinenav_env as marinenav_env
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt

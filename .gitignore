@@ -13,3 +13,5 @@ test*
 experiment*
 vrx_experiment_results/
 vrx_visualize_episodes/
+
+.package_xml_cache/

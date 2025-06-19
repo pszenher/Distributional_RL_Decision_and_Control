@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.10.2 FATAL_ERROR)
+
 project(action_planner)
 
-# Add libtorch (modify to your own location)
-list(APPEND CMAKE_PREFIX_PATH "/home/rfal/libtorch")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+find_package(Torch QUIET)
+if ( NOT Torch_FOUND )
+  include(FetchTorch)
+endif()
 
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
@@ -18,7 +22,7 @@ find_package(std_msgs REQUIRED)
 find_package(robot_info_msg REQUIRED)
 find_package(Torch REQUIRED)
 
-# Include directories (modify to your own location)
+# Include directories
 include_directories(
   ${EIGEN3_INCLUDE_DIR}
   ${TORCH_INCLUDE_DIRS}

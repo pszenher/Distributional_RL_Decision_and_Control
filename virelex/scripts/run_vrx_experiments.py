@@ -4,15 +4,15 @@ import rclpy
 import time
 from std_msgs.msg import Empty
 from std_msgs.msg import Bool
-from robot_info_msg.msg import RobotInfo
+from virelex.msg import RobotInfo
 import threading
 import numpy as np
 import math
 from functools import partial
 import subprocess
 import sys
-sys.path.insert(0,"../train_RL_agents")
-import marinenav_env.envs.marinenav_env as marinenav_env
+
+import rfarl.envs.marinenav as marinenav_env
 
 from launch.actions import RegisterEventHandler
 from launch.event_handlers import OnProcessExit

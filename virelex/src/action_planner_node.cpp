@@ -69,9 +69,11 @@ public:
 
 protected:
     virtual void actionPlanningCallback(const virelex_msgs::msg::State::SharedPtr msg) {
-        if(!unpaused) 
-            // Start signal has not been received yet
-            return;
+      if(!unpaused) {
+	// Start signal has not been received yet
+	RCLCPP_DEBUG_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "actionPlanningCallback awaiting unpause");
+	return;
+      }
         
         // Plan action based on the robot state
         auto now = std::chrono::steady_clock::now();
@@ -84,7 +86,8 @@ protected:
     }
     void unpauseCallback(const std_msgs::msg::Empty::SharedPtr msg) {
         if(!unpaused){
-            startTime_ = std::chrono::steady_clock::now();
+          startTime_ = std::chrono::steady_clock::now();
+	  // RCLCPP_WARN(this->get_logger(), "unpauseCallback hit!");
         }
         unpaused = true;
     }
@@ -95,17 +98,27 @@ protected:
         right_thrust_publisher_->publish(right_thrust);
     }
     void publishRobotInfo() {
-        if(!unpaused) return;
+      if(!unpaused) {
+	RCLCPP_DEBUG_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "publishRobotInfo awaiting unpause");
+	return;
+      }
+        // RCLCPP_WARN(this->get_logger(), "publishRobotInfo hit!");
         virelex_msgs::msg::RobotInfo msg;
         msg.robot_name.data = name;
         msg.reach_goal.data = reach_goal;
         msg.travel_time.data = travel_time;
+        // RCLCPP_WARN(this->get_logger(), "publishRobotInfo hit 1!");
         msg.header = last_state_msg->header;
+        // RCLCPP_WARN(this->get_logger(), "publishRobotInfo hit 2!");
         msg.pose = last_state_msg->self_pose;
+        // RCLCPP_WARN(this->get_logger(), "publishRobotInfo hit 3!");
         msg.velocity = last_state_msg->self_velocity;
+        // RCLCPP_WARN(this->get_logger(), "publishRobotInfo hit 4!");
         robot_info_publisher_->publish(msg);
+      	// RCLCPP_WARN(this->get_logger(), "publishRobotInfo succeeded!");
     }
-    void checkReachGoal(const virelex_msgs::msg::State::SharedPtr msg) {
+  void checkReachGoal(const virelex_msgs::msg::State::SharedPtr msg) {
+        // RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "checkReachGoal hit");
         if(!reach_goal){
             auto now = std::chrono::steady_clock::now();
             auto clock_diff = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime_).count();
@@ -212,10 +225,15 @@ private:
     void actionPlanningCallback(const virelex_msgs::msg::State::SharedPtr msg) override {
         last_state_msg = msg;
 
-        if(!unpaused) 
-            // Start signal has not been received yet
-            return;
-        
+        if(!unpaused) {
+          // Start signal has not been received yet
+	  RCLCPP_DEBUG_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "RL actionPlanningCallback awaiting unpause");
+          return;
+	}
+
+	// RCLCPP_WARN(this->get_logger(), "RL actionPlanningCallback hit!");
+
+      
         auto now = std::chrono::steady_clock::now();
         auto clock_diff = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastActionTime_).count();
         
@@ -1039,10 +1057,13 @@ private:
     void actionPlanningCallback(const virelex_msgs::msg::State::SharedPtr msg) override {
         last_state_msg = msg;
 
-        if(!unpaused) 
+        if(!unpaused)
+	  RCLCPP_DEBUG_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "MPC actionPlanningCallback awaiting unpause");
             // Start signal has not been received yet
             return;
-        
+
+	// RCLCPP_WARN(this->get_logger(), "MPC actionPlanningCallback hit!");
+      
         auto now = std::chrono::steady_clock::now();
         auto clock_diff = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastActionTime_).count();
         
@@ -1063,6 +1084,7 @@ private:
             left_thrust.data = std::clamp(l_thrust,min_thrust,max_thrust);
             right_thrust.data = std::clamp(r_thrust,min_thrust,max_thrust); 
         }
+      	RCLCPP_WARN(this->get_logger(), "MPC actionPlanningCallback succeeded!");
     }
     bool check_in_left_crossing_zone(Eigen::Vector2f& pos, Eigen::Vector2f& vel){
         bool x_in_range = ((pos(0) >= left_crossing_zone_x_dim(0)) && (pos(0) <= left_crossing_zone_x_dim(1)));

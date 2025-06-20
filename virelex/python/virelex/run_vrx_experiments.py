@@ -39,6 +39,13 @@ def add_buoy_to_sdf(input_file, output_file, buoy_poses):
     if world_tag is None:
         print("Error: Could not find <world name='sydney_regatta'> tag in SDF file.")
         return
+
+    # Set world `name` attribute to match new sdf filename
+    #   note:  failing to keep these in sync breaks the gz->ros sensor bridge
+    (new_world_name, _) = os.path.splitext(
+        os.path.basename( output_file )
+    )
+    world_tag.set('name', new_world_name)
     
     poses = []
     if len(buoy_poses)>0: 
@@ -224,17 +231,21 @@ class ExperimentManager:
 
         # Add action to launch competition environment
         competition_launch_file = launch.actions.ExecuteProcess(
-            cmd=['ros2', 'launch', 'virelex', 'competition.launch.py',
-                 "init_poses:="+init_poses, "goals:="+goals,
-                 "buoy_poses:="+buoy_poses, "method:="+method,
-                 "agent_type:="+agent_type, "model_path:="+model_path,
-                 "world:="+world_name]
-                 if len(buoy_poses)>0 else
-                 ['ros2', 'launch', 'virelex', 'competition.launch.py',
-                 "init_poses:="+init_poses, "goals:="+goals, "method:="+method,
-                 "agent_type:="+agent_type, "model_path:="+model_path,
-                 "world:="+world_name],
-            output='screen'
+            cmd=[
+                'ros2', 'launch', 'virelex', 'competition.launch.py',
+                "init_poses:="+init_poses, "goals:="+goals,
+                "buoy_poses:="+buoy_poses, "method:="+method,
+                "agent_type:="+agent_type, "model_path:="+model_path,
+                "world:="+world_name
+            ] if len(buoy_poses)>0 else [
+                'ros2', 'launch', 'virelex', 'competition.launch.py',
+                "init_poses:="+init_poses, "goals:="+goals, "method:="+method,
+                "agent_type:="+agent_type, "model_path:="+model_path,
+                "world:="+world_name,
+                # "extra_gz_args:=--verbose"
+            ]
+            ,
+            output='both'
         )
 
         vrx_exit_event_handler = RegisterEventHandler(

@@ -14,7 +14,7 @@ def launch(context):
     nodes = []
     for robot_name in robot_names:
         node = Node(
-            package='lidar_processor',
+            package='virelex',
             executable='lidar_processor_node',
             name='lidar_processor_node_' + robot_name,
             namespace=robot_name,

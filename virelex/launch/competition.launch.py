@@ -93,10 +93,7 @@ def launch(context, *args, **kwargs):
             default_value=agent_type
         )
 
-        lidar_processor_dir = get_package_share_directory('lidar_processor')
-        state_processor_dir = get_package_share_directory('state_processor')
-        action_planner_dir = get_package_share_directory('action_planner')
-        collision_detector_dir = get_package_share_directory('collision_detector')
+        virelex_dir = get_package_share_directory('virelex')
 
         launch_processes.append(robot_names_arg)
         launch_processes.append(robot_goals_arg)
@@ -105,22 +102,22 @@ def launch(context, *args, **kwargs):
         launch_processes.append(model_path_arg)
         launch_processes.append(agent_type_arg)
         launch_processes.append(IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(f'{lidar_processor_dir}/launch/lidar_processor.launch.py'),
+            PythonLaunchDescriptionSource(f'{virelex_dir}/launch/lidar_processor.launch.py'),
             launch_arguments={'robot_names': LaunchConfiguration('robot_names')}.items()
         ))
         launch_processes.append(IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(f'{state_processor_dir}/launch/state_processor.launch.py'),
+            PythonLaunchDescriptionSource(f'{virelex_dir}/launch/state_processor.launch.py'),
             launch_arguments={'robot_names': LaunchConfiguration('robot_names'),'robot_goals': LaunchConfiguration('robot_goals')}.items()
         ))
         launch_processes.append(IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(f'{action_planner_dir}/launch/action_planner.launch.py'),
+            PythonLaunchDescriptionSource(f'{virelex_dir}/launch/action_planner.launch.py'),
             launch_arguments={'method':LaunchConfiguration('method'),
                               'robot_names': LaunchConfiguration('robot_names'),
                               'model_path': LaunchConfiguration('model_path'),
                               'agent_type': LaunchConfiguration('agent_type')}.items()
         ))
         launch_processes.append(IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(f'{collision_detector_dir}/launch/collision_detector.launch.py'),
+            PythonLaunchDescriptionSource(f'{virelex_dir}/launch/collision_detector.launch.py'),
             launch_arguments={'robot_names': LaunchConfiguration('robot_names'),
                               'buoy_poses': LaunchConfiguration('buoy_poses')}.items()
         ))

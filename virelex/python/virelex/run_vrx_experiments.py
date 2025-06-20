@@ -224,13 +224,13 @@ class ExperimentManager:
 
         # Add action to launch competition environment
         competition_launch_file = launch.actions.ExecuteProcess(
-            cmd=['ros2', 'launch', 'vrx_gz', 'competition.launch.py', 
+            cmd=['ros2', 'launch', 'virelex', 'competition.launch.py',
                  "init_poses:="+init_poses, "goals:="+goals,
                  "buoy_poses:="+buoy_poses, "method:="+method,
                  "agent_type:="+agent_type, "model_path:="+model_path,
                  "world:="+world_name]
                  if len(buoy_poses)>0 else
-                 ['ros2', 'launch', 'vrx_gz', 'competition.launch.py', 
+                 ['ros2', 'launch', 'virelex', 'competition.launch.py',
                  "init_poses:="+init_poses, "goals:="+goals, "method:="+method,
                  "agent_type:="+agent_type, "model_path:="+model_path,
                  "world:="+world_name],

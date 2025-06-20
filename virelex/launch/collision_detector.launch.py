@@ -11,7 +11,7 @@ def launch(context):
     buoy_poses = LaunchConfiguration('buoy_poses').perform(context)
 
     node = Node(
-        package='collision_detector',
+        package='virelex',
         executable='collision_detector_node',
         name='collision_detector',
         arguments=[robot_names,buoy_poses]

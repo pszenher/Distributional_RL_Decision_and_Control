@@ -15,7 +15,7 @@ def launch(context):
     nodes = []
     for i,robot_name in enumerate(robot_names):
         node = Node(
-            package='state_processor',
+            package='virelex',
             executable='state_processor_node',
             name='state_processor_node_' + robot_name,
             namespace=robot_name,

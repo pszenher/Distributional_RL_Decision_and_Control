@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model
+  href="https://raw.githubusercontent.com/ros2/design/refs/heads/gh-pages/articles/specs/launch.0.1.1.xsd"
+  schematypens="http://www.w3.org/2001/XMLSchema"?>
+<launch>
+
+  <arg name="method"/>
+  <arg name="robot_name" default="wamv1"/>
+  <arg name="model_path"/>
+  <arg name="agent_type"/>
+  
+  <group>
+    <push_ros_namespace namespace="$(var robot_name)"/>
+    <node pkg="virelex"
+	  exec="action_planner_node"
+	  name="action_planner_node_$(var robot_name)"
+	  args="$(var method) $(var robot_name) $(var model_path) $(var agent_type)" />
+  </group>
+  
+</launch>

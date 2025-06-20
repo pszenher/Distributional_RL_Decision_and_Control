@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model
+  href="https://raw.githubusercontent.com/ros2/design/refs/heads/gh-pages/articles/specs/launch.0.1.1.xsd"
+  schematypens="http://www.w3.org/2001/XMLSchema"?>
+<launch>
+
+  <arg name="robot_names" default="wamv1"/>
+  <arg name="buoy_poses"/>
+  
+  <node pkg="virelex"
+	exec="collision_detector_node"
+	name="collision_detector"
+	args="$(var robot_names) $(var buoy_poses)" />
+</launch>

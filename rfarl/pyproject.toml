@@ -7,7 +7,7 @@ package-data = { "*" = ["*.json"] }
 
 [project]
 name = "rfarl"
-version = "0.1.0"
+version = "0.1.1"
 description = "Robust Field Autonomy Reinforcement-Learning"
 license = { text = "MIT" }
 authors = [

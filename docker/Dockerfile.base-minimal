@@ -55,6 +55,31 @@ RUN --mount=type=cache,target=/var/cache/apt \
       --ignore-src \
       --rosdistro ${ROS_DISTRO} -y
 
+RUN rm -r /ws/src
+
+COPY vrx /ws/src/vrx
+# Build the project
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
+    && cd /ws \
+    && colcon build --symlink-install --merge-install
+
+RUN --mount=type=cache,target=/var/cache/apt \
+    apt update \
+    && apt install -y --no-install-recommends \
+       unzip \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt clean -qq
+
+RUN curl -L -s \
+    -o /tmp/libtorch.zip \
+    "https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.2.2%2Bcpu.zip" \
+    && \
+    unzip "/tmp/libtorch.zip" -d "/tmp" \
+    && \
+    cp -r /tmp/libtorch/* /usr/local \
+    && \
+    rm -rf /tmp/libtorch.zip /tmp/libtorch
+
 COPY . /ws/src/
 # Build the project
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh \

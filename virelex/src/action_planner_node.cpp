@@ -1,7 +1,7 @@
 #include "rclcpp/rclcpp.hpp"
-#include "virelex/msg/state.hpp"
+#include "virelex_msgs/msg/state.hpp"
 #include "std_msgs/msg/empty.hpp"
-#include "virelex/msg/robot_info.hpp"
+#include "virelex_msgs/msg/robot_info.hpp"
 #include <torch/script.h>
 #include <torch/torch.h>
 #include <Eigen/Dense>
@@ -20,7 +20,7 @@ public:
         name = robot_name;
         
         // Subscribe to the robot state topic
-        state_subscriber_ = this->create_subscription<virelex::msg::State>(
+        state_subscriber_ = this->create_subscription<virelex_msgs::msg::State>(
             "/"+robot_name+"/robot_state", 10, std::bind(&ActionPlannerNode::actionPlanningCallback, this, std::placeholders::_1));
 
         // Subscribe to the unpause signal topic
@@ -39,7 +39,7 @@ public:
         right_pos_publisher_ = this->create_publisher<std_msgs::msg::Float64>("/"+robot_name+"/thrusters/right/pos", 10);
         right_thrust_publisher_ = this->create_publisher<std_msgs::msg::Float64>("/"+robot_name+"/thrusters/right/thrust", 10);
 
-        robot_info_publisher_ = this->create_publisher<virelex::msg::RobotInfo>("/"+robot_name+"/robot_info", 10);
+        robot_info_publisher_ = this->create_publisher<virelex_msgs::msg::RobotInfo>("/"+robot_name+"/robot_info", 10);
 
         left_pos.data = PI / 2;
         left_thrust.data = 50.0;
@@ -68,7 +68,7 @@ public:
     }
 
 protected:
-    virtual void actionPlanningCallback(const virelex::msg::State::SharedPtr msg) {
+    virtual void actionPlanningCallback(const virelex_msgs::msg::State::SharedPtr msg) {
         if(!unpaused) 
             // Start signal has not been received yet
             return;
@@ -96,7 +96,7 @@ protected:
     }
     void publishRobotInfo() {
         if(!unpaused) return;
-        virelex::msg::RobotInfo msg;
+        virelex_msgs::msg::RobotInfo msg;
         msg.robot_name.data = name;
         msg.reach_goal.data = reach_goal;
         msg.travel_time.data = travel_time;
@@ -105,7 +105,7 @@ protected:
         msg.velocity = last_state_msg->self_velocity;
         robot_info_publisher_->publish(msg);
     }
-    void checkReachGoal(const virelex::msg::State::SharedPtr msg) {
+    void checkReachGoal(const virelex_msgs::msg::State::SharedPtr msg) {
         if(!reach_goal){
             auto now = std::chrono::steady_clock::now();
             auto clock_diff = std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime_).count();
@@ -118,13 +118,13 @@ protected:
 
     std::string name;
 
-    rclcpp::Subscription<virelex::msg::State>::SharedPtr state_subscriber_;
+    rclcpp::Subscription<virelex_msgs::msg::State>::SharedPtr state_subscriber_;
     rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr unpause_signal_subscriber_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr left_pos_publisher_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr left_thrust_publisher_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr right_pos_publisher_;
     rclcpp::Publisher<std_msgs::msg::Float64>::SharedPtr right_thrust_publisher_;
-    rclcpp::Publisher<virelex::msg::RobotInfo>::SharedPtr robot_info_publisher_;
+    rclcpp::Publisher<virelex_msgs::msg::RobotInfo>::SharedPtr robot_info_publisher_;
     rclcpp::TimerBase::SharedPtr action_publish_timer_;
     rclcpp::TimerBase::SharedPtr robot_info_publish_timer_;
     
@@ -135,7 +135,7 @@ protected:
 
     bool reach_goal;
     float travel_time;
-    virelex::msg::State::SharedPtr last_state_msg;
+    virelex_msgs::msg::State::SharedPtr last_state_msg;
 
     float publish_freqency;
     float action_time_interval;
@@ -209,7 +209,7 @@ public:
         support = torch::linspace(Vmin, Vmax, atoms, torch::dtype(torch::kFloat64));
     }
 private:
-    void actionPlanningCallback(const virelex::msg::State::SharedPtr msg) override {
+    void actionPlanningCallback(const virelex_msgs::msg::State::SharedPtr msg) override {
         last_state_msg = msg;
 
         if(!unpaused) 
@@ -248,7 +248,7 @@ private:
             right_thrust.data = std::clamp(r_thrust,min_thrust,max_thrust); 
         }
     }
-    void computeAction(const virelex::msg::State::SharedPtr msg){
+    void computeAction(const virelex_msgs::msg::State::SharedPtr msg){
         // The coordinate used in the RL model has the opposite y and z direction
         // Thus need to reverse y coordinate and angular velocity value 
         
@@ -450,7 +450,7 @@ public:
         virtual_obj_dis = 5.0;
     }
 private:
-    void actionPlanningCallback(const virelex::msg::State::SharedPtr msg) override {
+    void actionPlanningCallback(const virelex_msgs::msg::State::SharedPtr msg) override {
         last_state_msg = msg;
 
         if(!unpaused) 
@@ -595,7 +595,7 @@ private:
         else if(in_head_on_zone) create_head_on_virtual_objects(obj_pos,obj_vel,virtual_objs);
         else virtual_objs.push_back(obj_pos);
     }
-    void computeForce(const virelex::msg::State::SharedPtr msg){
+    void computeForce(const virelex_msgs::msg::State::SharedPtr msg){
         // Compute Attractive Force
         Eigen::Vector2f F_att = Eigen::Vector2f::Zero();
         F_att(0) = k_att * msg->goal.x;
@@ -643,7 +643,7 @@ private:
         F_total(1) = F_total_in_w_3D(1);
     }
 
-    Eigen::Matrix4f computePoseTransformation(const virelex::msg::State::SharedPtr msg){
+    Eigen::Matrix4f computePoseTransformation(const virelex_msgs::msg::State::SharedPtr msg){
         
         Eigen::Matrix3f R = Eigen::Quaternionf(msg->self_pose.orientation.w,
                                                msg->self_pose.orientation.x,
@@ -661,7 +661,7 @@ private:
         return T;
     }
 
-    void computeAction(const virelex::msg::State::SharedPtr msg){
+    void computeAction(const virelex_msgs::msg::State::SharedPtr msg){
         // Transform force to the robot frame
         Eigen::Matrix4f robot_pose = computePoseTransformation(msg);
         Eigen::Matrix3f R = robot_pose.block<3,3>(0,0);
@@ -793,7 +793,7 @@ private:
         // RCLCPP_INFO(this->get_logger(), "a_proj: %f",a_proj);
     }
 
-    void update_model_parameters(const virelex::msg::State::SharedPtr msg){
+    void update_model_parameters(const virelex_msgs::msg::State::SharedPtr msg){
         float u = msg->self_velocity.linear.x;
         float v = -1.0*msg->self_velocity.linear.y;
         float r = -1.0*msg->self_velocity.angular.z;
@@ -829,7 +829,7 @@ private:
         b_V = -1.0 * C_RB * V - N * V_r;
     }
     
-    Eigen::Vector2f positionForce(const virelex::msg::State::SharedPtr msg, int idx, const Eigen::Vector2f& pos){
+    Eigen::Vector2f positionForce(const virelex_msgs::msg::State::SharedPtr msg, int idx, const Eigen::Vector2f& pos){
         float d_obs = pos.norm() - msg->self_radius - msg->object_radii[idx];
         
         Eigen::Vector2f goal = Eigen::Vector2f::Zero();
@@ -854,7 +854,7 @@ private:
         return (F_rep_1 + F_rep_2);
     }
 
-    Eigen::Vector2f velocityForce(float v_ao, const virelex::msg::State::SharedPtr msg, int idx){
+    Eigen::Vector2f velocityForce(float v_ao, const virelex_msgs::msg::State::SharedPtr msg, int idx){
         Eigen::Vector2f pos = Eigen::Vector2f::Zero();
         pos(0) = msg->object_positions[idx].x;
         pos(1) = msg->object_positions[idx].y;
@@ -1036,7 +1036,7 @@ public:
         transition_penalty = 2;
     }
 private:
-    void actionPlanningCallback(const virelex::msg::State::SharedPtr msg) override {
+    void actionPlanningCallback(const virelex_msgs::msg::State::SharedPtr msg) override {
         last_state_msg = msg;
 
         if(!unpaused) 
@@ -1156,7 +1156,7 @@ private:
         else if(in_head_on_zone) create_head_on_virtual_objects(obj_pos,obj_vel,virtual_objs);
         else virtual_objs.push_back(obj_pos);
     }
-    void obstaclesForwardSimuation(const virelex::msg::State::SharedPtr msg){
+    void obstaclesForwardSimuation(const virelex_msgs::msg::State::SharedPtr msg){
         sim_COLREGs_obs.clear();
         sim_obs.clear();
         
@@ -1187,7 +1187,7 @@ private:
             sim_obs_r.push_back(msg->object_radii[i]);
         }
     }
-    void computeAction(const virelex::msg::State::SharedPtr msg){
+    void computeAction(const virelex_msgs::msg::State::SharedPtr msg){
         
         update_model_parameters(msg);
 
@@ -1273,7 +1273,7 @@ private:
 
         current_action = min_action;
     }
-    void update_model_parameters(const virelex::msg::State::SharedPtr msg){
+    void update_model_parameters(const virelex_msgs::msg::State::SharedPtr msg){
         float u = msg->self_velocity.linear.x;
         float v = -1.0*msg->self_velocity.linear.y;
         float r = -1.0*msg->self_velocity.angular.z;

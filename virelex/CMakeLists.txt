@@ -19,13 +19,14 @@ find_package(rclcpp REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(message_filters REQUIRED)
 
-find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
 find_package(Eigen3 REQUIRED)
 find_package(Torch REQUIRED)
+
+find_package(virelex_msgs REQUIRED)
 
 # Include directories
 include_directories(
@@ -34,32 +35,14 @@ include_directories(
   ${TORCH_INCLUDE_DIRS}
 )
 
-# Generate message interfaces
-rosidl_generate_interfaces(${PROJECT_NAME}
-  # cluster_msg
-  "msg/PointCloudCluster.msg"
-  # robot_info_msg
-  "msg/RobotInfo.msg"
-  # state_msg
-  "msg/State.msg"
-  DEPENDENCIES std_msgs sensor_msgs geometry_msgs
-)
-
-# Define support target for message dependencies
-rosidl_get_typesupport_target(
-  cpp_typesupport_target
-  ${PROJECT_NAME}
-  rosidl_typesupport_cpp
-)
-
 # action_planner
 add_executable(action_planner_node src/action_planner_node.cpp)
 ament_target_dependencies(action_planner_node
   rclcpp
   std_msgs
+  virelex_msgs
 )
 target_link_libraries(action_planner_node
-  ${cpp_typesupport_target}
   ${TORCH_LIBRARIES}
 )
 install(TARGETS
@@ -84,9 +67,7 @@ add_executable(lidar_processor_node src/lidar_processor_node.cpp)
 ament_target_dependencies(lidar_processor_node
   rclcpp
   sensor_msgs
-)
-target_link_libraries(lidar_processor_node
-  ${cpp_typesupport_target}
+  virelex_msgs
 )
 install(TARGETS
   lidar_processor_node
@@ -102,19 +83,26 @@ ament_target_dependencies(state_processor_node
   message_filters
   std_msgs
   nav_msgs
-)
-target_link_libraries(state_processor_node
-  ${cpp_typesupport_target}
+  virelex_msgs
 )
 install(TARGETS
   state_processor_node
   DESTINATION lib/${PROJECT_NAME}
 )
 
-# Install launch files if any
+# Install launch and pretrained weight files
 install(DIRECTORY
+  config
   launch
+  trained
+  models
+  urdf
+  worlds
   DESTINATION share/${PROJECT_NAME}/
+)
+
+ament_python_install_package(${PROJECT_NAME}
+  PACKAGE_DIR "python/${PROJECT_NAME}"
 )
 
 ament_export_dependencies(rosidl_default_runtime)

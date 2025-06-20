@@ -4,7 +4,7 @@ import rclpy
 import time
 from std_msgs.msg import Empty
 from std_msgs.msg import Bool
-from virelex.msg import RobotInfo
+from virelex_msgs.msg import RobotInfo
 import threading
 import numpy as np
 import math
@@ -26,6 +26,8 @@ import os
 import xml.etree.ElementTree as ET
 import shutil
 import json
+
+import ament_index_python.packages as rospack
 
 def add_buoy_to_sdf(input_file, output_file, buoy_poses):
     shutil.copyfile(input_file, output_file)
@@ -344,11 +346,11 @@ class ExperimentManager:
 
 if __name__ == '__main__':
     
-    method = "the/method/used/in/vrx/experiments"
+    method = "RL"
     
     if method == "RL":
-        agent_type = "RL/agent/used/in/vrx/experiments"
-        model_path = "corresponding/torch/script/of/the/RL/model"
+        agent_type = "AC-IQN"
+        model_path = rospack.get_package_share_directory("virelex") + "/trained/traced_AC_IQN_model.pt"
     elif method == "APF":
         agent_type = "APF"
         model_path = " "
@@ -360,14 +362,13 @@ if __name__ == '__main__':
 
 
     # vrx envrionment configuration file
-    sdf_file_dir = "install/share/vrx_gz/worlds"
+    world_sdf_dir = rospack.get_package_share_directory("virelex") + "/worlds"
     
-    input_world = "sydney_regatta_original"
-    input_sdf_file = f"{sdf_file_dir}/{input_world}.sdf"
+    input_world = "sydney_regatta"
+    output_world = "sydney_regatta_aux"
     
-    output_world = "sydney_regatta"
-    output_sdf_file = f"{sdf_file_dir}/{output_world}.sdf"
-
+    input_sdf_file = f"{world_sdf_dir}/{input_world}.sdf"
+    output_sdf_file = f"{world_sdf_dir}/{output_world}.sdf"
 
     init_poses_data = []
     goals_data = []
@@ -385,7 +386,7 @@ if __name__ == '__main__':
     os.makedirs(result_file_dir)
 
 
-    run_with_exp_config = True
+    run_with_exp_config = False
     if run_with_exp_config:
         ##### run an experiment with specified config ##### 
         

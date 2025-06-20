@@ -1,6 +1,6 @@
 import numpy as np
 import scipy.spatial
-import marinenav_env.envs.utils.robot as robot
+import rfarl.envs.marinenav.vehicles.wamv as robot
 import json
 import copy
 

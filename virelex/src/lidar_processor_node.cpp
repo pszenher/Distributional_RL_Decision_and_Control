@@ -3,7 +3,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include "geometry_msgs/msg/point.hpp"
-#include "virelex/msg/point_cloud_cluster.hpp"
+#include "virelex_msgs/msg/point_cloud_cluster.hpp"
 #include <vector>
 #include <cmath>
 #include <iostream>
@@ -31,7 +31,7 @@ public:
         processed_lidar_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
             "/"+robot_name+"/sensors/lidars/lidar_wamv_sensor/processed_points", 10);
 
-        clusters_publisher_ = this->create_publisher<virelex::msg::PointCloudCluster>(
+        clusters_publisher_ = this->create_publisher<virelex_msgs::msg::PointCloudCluster>(
             "/"+robot_name+"/sensors/lidars/lidar_wamv_sensor/clusters", 10);
 
         // Compute horizontal and vertical angle interval between beams
@@ -228,7 +228,7 @@ private:
         processed_cloud_2.height = 1;
 
         // Create clusters message and publish
-        virelex::msg::PointCloudCluster point_cloud_clusters;
+        virelex_msgs::msg::PointCloudCluster point_cloud_clusters;
         point_cloud_clusters.header = processed_cloud_2.header;
         point_cloud_clusters.point_cloud = processed_cloud_2;
         point_cloud_clusters.cluster_point_counts = new_cluster_point_counts;
@@ -548,7 +548,7 @@ private:
 
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr lidar_subscriber_;
     rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr processed_lidar_publisher_;
-    rclcpp::Publisher<virelex::msg::PointCloudCluster>::SharedPtr clusters_publisher_;
+    rclcpp::Publisher<virelex_msgs::msg::PointCloudCluster>::SharedPtr clusters_publisher_;
 };
 
 int main(int argc, char** argv) {

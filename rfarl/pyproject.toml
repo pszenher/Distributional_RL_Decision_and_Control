@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-data = { "*" = ["*.json"] }
+
+[project]
+name = "rfarl"
+version = "0.1.0"
+description = "Robust Field Autonomy Reinforcement-Learning"
+license = { text = "MIT" }
+authors = [
+  { name  = "Xi Lin", email = "xlin26@stevens.edu" },
+]
+maintainers = [
+  { name  = "Xi Lin", email = "xlin26@stevens.edu" },
+  { name  = "Paul Szenher", email = "pszenher@stevens.edu" },
+]
+keywords=[
+  'reinforcement-learning',
+]
+classifiers = [
+  'License :: OSI Approved :: MIT License',
+  'Topic :: Scientific/Engineering :: Artificial Intelligence',
+]
+
+dependencies = [
+  "numpy",
+  "torch",
+]

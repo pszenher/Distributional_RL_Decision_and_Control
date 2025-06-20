@@ -85,3 +85,12 @@ COPY . /ws/src/
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
     && cd /ws \
     && colcon build --symlink-install --merge-install
+
+RUN echo "source /ws/install/setup.bash" >> ~/.bashrc
+
+RUN echo "#!/bin/bash" >> /sim.sh && \
+    echo "python3 /ws/install/lib/python3.12/site-packages/virelex/run_vrx_experiments.py" >> /sim.sh && \
+    chmod +x /sim.sh
+
+# RUN . /ws/install/setup.sh \
+#     && /sim.sh

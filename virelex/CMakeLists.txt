@@ -28,6 +28,10 @@ find_package(Torch REQUIRED)
 
 find_package(virelex_msgs REQUIRED)
 
+# Hooks
+ament_environment_hooks("hooks/resource_paths.dsv.in")
+ament_environment_hooks("hooks/resource_paths.sh")
+
 # Include directories
 include_directories(
   ${PROJECT_SOURCE_DIR}/include

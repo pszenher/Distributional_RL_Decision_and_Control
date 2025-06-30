@@ -1,86 +1,72 @@
-# Ubuntu 24.04
-FROM ros:jazzy AS vrx-base
+FROM ros:jazzy
 
-# Workaround from https://discourse.ros.org/t/ros-signing-key-migration-guide/43937
-RUN rm -f \
-    /etc/apt/sources.list.d/ros2-latest.list \
-    /usr/share/keyrings/ros2-latest-archive-keyring.gpg
-
-# Only install ros2-apt-source if it's not already installed
-RUN --mount=type=cache,target=/var/cache/apt \
-    if ! dpkg -l | grep -q ros2-apt-source; then \
-    apt-get update && \
-    apt-get install -y ca-certificates curl && \
-    export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}') && \
-    curl -L -s -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo $VERSION_CODENAME)_all.deb" && \
-    apt-get update && \
-    apt-get install /tmp/ros2-apt-source.deb && \
-    rm -f /tmp/ros2-apt-source.deb; \
-  fi
-
-ENV DEBIAN_FRONTEND=noninteractive
-
-# Setup timezone
-ENV TZ=Etc/UTC
-RUN --mount=type=cache,target=/var/cache/apt \
-    echo $TZ > /etc/timezone && \
-    ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && \
-    apt update && \
-    apt install -y locales && \
-    locale-gen en_US en_US.UTF-8 && \
-    update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
-
-# Set up repo to install Gazebo
-RUN curl -s https://packages.osrfoundation.org/gazebo.gpg -o /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
-
-# Install some 'standard' ROS packages and utilities.
-RUN --mount=type=cache,target=/var/cache/apt \
-    apt update \
-    && apt install -y --no-install-recommends \
-       gz-harmonic \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt clean -qq
-
-FROM vrx-base AS vrx-builder
+RUN echo 'APT::Install-Recommends "false";' > "/etc/apt/apt.conf.d/90-docker-no-recommends" \
+    && \
+    echo 'APT::Install-Suggests "false";'   > "/etc/apt/apt.conf.d/90-docker-no-suggests"
 
 COPY .package_xml_cache /ws/src/
 
 RUN --mount=type=cache,target=/var/cache/apt \
     . /opt/ros/${ROS_DISTRO}/setup.sh \
     && apt update \
-    && PIP_BREAK_SYSTEM_PACKAGES=1 \
-      rosdep install -r \
+    && rosdep install -r \
       --from-paths /ws/src/ \
       --ignore-src \
       --rosdistro ${ROS_DISTRO} -y
 
 RUN rm -r /ws/src
 
-COPY vrx /ws/src/vrx
-# Build the project
-RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
-    && cd /ws \
-    && colcon build --symlink-install --merge-install
+# Set up repo to install Gazebo
+RUN curl -s https://packages.osrfoundation.org/gazebo.gpg -o /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
 
+# NOTE: we don't actually want osrf's Gazebo package, the
+#       `ros-jazzy-ros-gz` one will do just fine; the problem is that
+#       the `sdformat_vendor` package used to bring the sdformat
+#       library into ROS decided to disable the `pybind11` flag in the
+#       build config:
+#
+#           https://github.com/gazebo-release/sdformat_vendor/commit/ab45af8e28da9df96e6f4b451269e42fd1cdffa1
+#
+#       Stock VRX relies on python bindings to SDFormat in the
+#       `vrx_gz` package when determining which bridges to launch as a
+#       function of SDF file plugin elements:
+# 
+#         - vrx_gz/model.py
+#         - vrx_gz/payload_bridges.py
+#
+#       If we swap this for a better `ros_gz_bridge` configuration
+#       setup, we might be able to drop the dep; for now, however, it
+#       stays....
+# 
 RUN --mount=type=cache,target=/var/cache/apt \
     apt update \
     && apt install -y --no-install-recommends \
-       unzip \
+       python3-sdformat14 \
     && rm -rf /var/lib/apt/lists/* \
     && apt clean -qq
 
-RUN curl -L -s \
-    -o /tmp/libtorch.zip \
-    "https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.2.2%2Bcpu.zip" \
-    && \
-    unzip "/tmp/libtorch.zip" -d "/tmp" \
-    && \
-    cp -r /tmp/libtorch/* /usr/local \
-    && \
-    rm -rf /tmp/libtorch.zip /tmp/libtorch
-
 COPY . /ws/src/
+
+# Prefetch Gazebo fuel resources into cache
+# 
+# FIXME: this is a blind xpath query to grab `//include/uri` nodes
+#        with "http" in them somewhere; there could still be fuel
+#        resources that need to be fetched from imports found in the
+#        SDF trees of locally-imported models.
+#
+#        The best way to account for this isn't clear; if gz sim has a
+#        set of flags that do only the startup phase for a world file
+#        w/o graphics, it might be worth letting Gazebo fetch the
+#        assets for us that way.  
+# 
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
+    xmllint --xpath "//include/uri/text()" "/ws/src/virelex/worlds/sydney_regatta.sdf" \
+    | grep http \
+    | sort \
+    | uniq \
+    | xargs -t -n1 gz fuel download --url
+
 # Build the project
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
     && cd /ws \
@@ -91,6 +77,3 @@ RUN echo "source /ws/install/setup.bash" >> ~/.bashrc
 RUN echo "#!/bin/bash" >> /sim.sh && \
     echo "python3 /ws/install/lib/python3.12/site-packages/virelex/run_vrx_experiments.py" >> /sim.sh && \
     chmod +x /sim.sh
-
-# RUN . /ws/install/setup.sh \
-#     && /sim.sh

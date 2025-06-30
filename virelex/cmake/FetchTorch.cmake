@@ -5,8 +5,16 @@ include(FetchContent)
 # Set DOWNLOAD_EXTRACT_TIMESTAMP by default
 cmake_policy(SET CMP0135 NEW)
 
-set(LIBTORCH_URL      "https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.2.2%2Bcpu.zip")
-set(LIBTORCH_URL_HASH "SHA256=cb0a7238c5e6959ba352c0d6a75d4d4794a182ee34e6a0a0e275148035f8d855")
+# libtorch 2.2.2-cpu
+# ================================================================
+# set(LIBTORCH_URL      "https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.2.2%2Bcpu.zip")
+# set(LIBTORCH_URL_HASH "SHA256=cb0a7238c5e6959ba352c0d6a75d4d4794a182ee34e6a0a0e275148035f8d855")
+
+# libtorch 2.7.1-cpu
+# ================================================================
+set(LIBTORCH_URL      "https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.7.1%2Bcpu.zip")
+set(LIBTORCH_URL_HASH "SHA256=63d572598c8d532128a335018913e795c1bbb32602ce378896dc8cfbb5590976")
+
 FetchContent_Declare(
   libtorch
   URL      ${LIBTORCH_URL}

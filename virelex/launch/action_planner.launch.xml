@@ -4,17 +4,17 @@
   schematypens="http://www.w3.org/2001/XMLSchema"?>
 <launch>
 
+  <arg name="robot_names" default="wamv1"/>
+
   <arg name="method"/>
-  <arg name="robot_name" default="wamv1"/>
   <arg name="model_path"/>
   <arg name="agent_type"/>
-  
-  <group>
-    <push_ros_namespace namespace="$(var robot_name)"/>
+
+  <node_list namespaces="$(var robot_names)">
     <node pkg="virelex"
 	  exec="action_planner_node"
-	  name="action_planner_node_$(var robot_name)"
-	  args="$(var method) $(var robot_name) $(var model_path) $(var agent_type)" />
-  </group>
+	  name="action_planner_node"
+	  args="$(var method) $(ns 0) $(var model_path) $(var agent_type)" />
+  </node_list>
   
 </launch>

@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+  <arg name="world" default="sydney_regatta" description="Name of world"/>
+  <arg name="sim_mode" default="full" description="Simulation mode: 'full', 'sim', or 'bridge'">
+    <!-- full:   spawns robot and launch ros_gz bridges  -->
+    <!-- sim:    spawns robot only                       -->
+    <!-- bridge: launch ros_gz bridges only              -->
+  </arg>
+
+  <!-- VRX base args -->
+  <arg name="bridge_competition_topics" default="True" description="Enable gz/ros bridge for competition topics"/>
+  <arg name="config_file" default="" description="Yaml configuration file to spawn"/>
+  <arg name="robot" default="" description="Name of robot to spawn if specified"/>
+  <arg name="headless" default="" description="Run simulation headless (no GUI)"/>
+  <arg name="urdf" default="" description="URDF file of the wam-v model"/>
+  <arg name="paused" default="" description="Start the simulation paused"/>
+  <arg name="competition_mode" default="False" description="Disable debug topics"/>
+  <arg name="extra_gz_args" default="" description="Additional arguments to be passed to gz sim"/>
+
+  <!-- Xi's custom args -->
+  <arg name="method" default="" description="Action planner method ('MPC', 'APF', or 'RL')"/>
+  <arg name="agent_type" default="" description="When method=='RL', RL agent type of action planner"/>
+  <arg name="model_path" default="" description="When method=='RL', filesystem path to RL agent model"/>
+  <arg name="init_poses" default="" description="Initial poses of robots in the format: 'x_1,y_1,theta_1;..."/>
+  <arg name="goals" default="" description="Goals of robots in the format: 'x_1,y_1;...'"/>
+  <arg name="buoy_poses" default="" description="Positions and radii of bouys in the format: 'x_1,y_1,r_1;...'"/>
+
+  <arg name="robot_names" default="" description="Space-delimited list of robot names"/>
+
+  
+  <!-- <include file="$(find-pkg-share ros_gz_sim)/launch/gz_sim.launch.py"> -->
+  <!--   <arg name="gz_args" value="-v 4 $(if $(not $(var paused)) '-r') $(if $(var headless) -s) $(var extra_gz_args) $(var world).sdf"/> -->
+  <!-- </include> -->
+
+  <!-- `gz_server`:  custom launch action for starting Gazebo, exposed by `ros_gz_sim` package -->
+  <gz_server world_sdf_file="$(var world_sdf_file)">
+    <!-- Attributes: -->
+    <!-- world_sdf_file   (''): filesystem path to SDF world file for load -->
+    <!-- world_sdf_string (''): literal string-encoded sdf world file contents
+	 - not used if `world_sdf_file` is set
+         - at least one of `world_sdf_file` or `world_sdf_string` must be set -->
+    <!-- use_composition      (false)              : run using node composition -->
+    <!-- create_own_container (false)              : create new composition container to load ros_gz_sim::GzServer component -->
+    <!-- container_name       ('ros_gz_container') : name of composition container
+	 - if `create_own_container` == true  -> sets name of newly created container
+	 - if `create_own_container` == false -> name of existing container instructed to load `ros_gz_sim::GzServer` component -->
+  </gz_server>
+
+  <!-- ALTERNATIVE:  just throw `gz_sim.launch.py` in the trash and run the executor yourself... -->
+  <!-- <executable cmd="gz sim" name="gazebo" shell="True"> -->
+  <!--   <env name="GZ_SIM_SYSTEM_PLUGIN_PATH" value="$(env GZ_SIM_SYSTEM_PLUGIN_PATH);$(env LD_LIBRARY_PATH)"/> -->
+  <!--   <env name="GZ_SIM_RESOURCE_PATH" value="$(env GZ_SIM_SYSTEM_PLUGIN_PATH)"/> -->
+  <!-- </executable> -->
+
+  
+  <!-- `ros_gz_bridge`:  custom launch action for starting ros/gz parameter bridges, exposed by `ros_gz_sim` package -->
+  <ros_gz_bridge bridge_name="$(var bridge_name)" config_file="$(var config_file)">
+    <!-- Attributes: -->
+    <!-- bridge_name *required*: String `name` argument provided to `ros_gz_bridge` `Node` instance -->
+    <!-- config_file ('')      : Filesystem path to YAML-formatted bridge configuration file
+	 - passed internally as a ROS parameter to `bridge_node` (via the `Node` `parameters` argument, with key `config_file`)
+    -->
+
+    <!-- use_composition      (false)              : run using node composition -->
+    <!-- create_own_container (false)              : create new composition container to load `ros_gz_bridge::RosGzBridge` component -->
+    <!-- container_name       ('ros_gz_container') : name of composition container
+	 - if `create_own_container` == true  -> sets name of newly created container
+	 - if `create_own_container` == false -> name of existing container instructed to load `ros_gz_bridge::RosGzBridge` component
+    -->
+
+    <!-- namespace   ('')      : String `namespace` argument provided to `ros_gz_bridge` `Node` instance -->
+    <!-- use_respawn (false)   : Boolean `respawn` argument provided to `ros_gz_bridge` `Node` instance
+	 - if `use_composition` == true -> `use_respawn` is ignored
+    -->
+    <!-- log_level   ('info')  : String `−−log-level` command-line provided to `ros_gz_bridge` `Node` instance in `arguments` field
+	 - sets value of `Node` `arguments` kwarg to: ['−−ros-args', '−−log-level', ${log_level}]
+    	 - if `use_composition` == true -> `log_level` is ignored
+    -->
+    <!-- bridge_params ('')    : Extra parameters to pass to the bridge, as a `,`-delimited list of `:`-separated key-value pairs
+	 valid values (known ROS parameters):
+	 - `subscription_heartbeat` (1000)  : for (unstarted) lazy bridges, time (in ms) to wait in between polling checks for new subscribers
+	 - `expand_gz_topic_names`  (false) : if true, prepend the ROS namespace to Gazebo topic strings (by default, this is only done for ROS topics)
+	 - `override_timestamps_with_wall_time` (false) : if true, rewrite GZ_to_ROS message timestamps with system wall time before ROS publication
+	 - `config_file` : if set here, overrides value of `config_file` launch action attribue
+
+         example value:
+	 'expand_gz_topic_names:true,override_timestamps_with_wall_time:true'
+    -->
+
+    <!-- extra_bridge_params ('') : Undocumented, and I'm reasonably sure that exposing this in the way they did in the action is a misimplementation -->
+
+
+    <!-- Entities: -->
+    <!-- <topic> -->
+    <!-- ros_topic_name *required* : String name of ROS topic for bridge -->
+    <!-- ros_type_name  *required* : String name of ROS message type for bridge -->
+    <!-- gz_topic_name  *required* : String name of Gazebo topic for bridge -->
+    <!-- gz_type_name   *required* : String name of Gazebo message type for bridge -->
+
+    <!-- direction ('BIDIRECTIONAL') : String denoting direction of bridge conversion
+	 valid values:
+	 - 'NONE'
+	 - 'GZ_TO_ROS'
+	 - 'ROS_TO_GZ'
+	 - 'BIDIRECTIONAL'
+    -->
+    <!-- lazy (false) : defer starting bridge until a subscriber is spawned to consume it
+	 - if true -> new subscribers will be polled with a period defined by rosparam `subscription_heartbeat`, in milliseconds
+    -->
+    <!-- publisher_queue (10)  : message queue size for ROS bridge publisher  -->
+    <!-- subscriber_queue (10) : message queue size for ROS bridge subscriber -->
+
+    <!-- See: https://github.com/gazebosim/ros_gz/blob/ros2/ros_gz_bridge/README.md#example-6-configuring-the-bridge-via-xml-launch-file -->
+
+    <topic ros_topic_name="/clock"
+	   gz_topic_name="/clock"
+           ros_type_name="rosgraph_msgs/msg/Clock"
+	   gz_type_name="gz.msgs.Clock"
+	   direction="GZ_TO_ROS" />
+
+    <topic ros_topic_name="/vrx/task/info"
+	   gz_topic_name="/vrx/task/info"
+	   ros_type_name="ros_gz_interfaces/msg/ParamVec"
+	   gz_type_name="gz.msgs.Param"
+	   direction="GZ_TO_ROS" /> 
+
+    <!-- NOTE: only enabled in VRX if `competition_mode` is `false`? -->
+    <topic ros_topic_name="/vrx/debug/wind/speed"
+	   gz_topic_name="/vrx/debug/wind/speed"
+	   ros_type_name="std_msgs/msg/Float32"
+	   gz_type_name="gz.msgs.Float"
+	   direction="GZ_TO_ROS" />
+    <topic ros_topic_name="/vrx/debug/wind/direction"
+	   gz_topic_name="/vrx/debug/wind/direction"
+	   ros_type_name="std_msgs/msg/Float32"
+	   gz_type_name="gz.msgs.Float"
+	   direction="GZ_TO_ROS" />
+
+    <!-- START: Model-specific bridges -->
+    <topic ros_topic_name="pose"
+	   gz_topic_name="/model/$(var model_name)/pose"
+           ros_type_name="tf2_msgs/msg/TFMessage"
+	   gz_type_name="gz.msgs.Pose_V"
+	   direction="GZ_TO_ROS" />
+
+    <topic ros_topic_name="pose_static"
+	   gz_topic_name="/model/$(var model_name)/pose_static"
+           ros_type_name="tf2_msgs/msg/TFMessage"
+	   gz_type_name="gz.msgs.Pose_V"
+	   direction="GZ_TO_ROS" />
+
+    <topic ros_topic_name="joint_states"
+	   gz_topic_name="/world/$(var world_name)/model/$(var model_name)/joint_state"
+           ros_type_name="sensor_msgs/msg/JointState"
+	   gz_type_name="gz.msgs.Model"
+	   direction="GZ_TO_ROS" />
+
+    <!--
+	TODO: vehicle payload-specific bridges
+
+        There are a variety of ways by which VRX allows these to be
+        set, all of which take place in:
+
+            vrx/vrx_gz/src/vrx_gz/model.py
+
+        The one of primary interest here is the `payload_from_sdf`
+        method on the `Model` class, which reads an XML-formatted
+        string (i.e., the one generated via invocation of `xacro` on
+        the WAMV `urdf` files), and adds bridges for every
+        plugin-bearing component which has a meaningful topic to bridge.
+
+        The only thing clear about the ideal mechanism for doing this
+        in the clearest way possible is that VRX's current method is
+        without question not it.  
+    -->
+
+    <!-- END: Model-specific bridges -->
+
+    
+    <!-- <service> -->
+    <!-- service_name      *required* : String name of new ROS service providing access to bridged Gazebo service -->
+    <!-- ros_type_name     *required* : String name of ROS message type for service bridge     -->
+    <!-- gz_req_type_name  *required* : String name of Gazebo message type for service request -->
+    <!-- gz_type_name      *required* : String name of Gazebo message type for service reply   -->
+
+    <!--
+	NOTE: this bridge isn't enabled by VRX-proper (as the
+              `ros_gz_interfaces` package at the time of VRX's primary
+              development was in shambles iirc)
+
+              However, it is a very useful functionality to have
+              exposed via ROS, so we'll do so here.
+    -->
+    <service service_name="/world/$(var world_name)/control"
+             ros_type_name="ros_gz_interfaces/srv/ControlWorld"
+             gz_req_type_name="gz.msgs.WorldControl"
+	     gz_rep_type_name="gz.msgs.Boolean" />
+    
+  </ros_gz_bridge>
+
+  <!-- `gz_spawn_model`:  custom launch action for spawning models in Gazebo, exposed by `ros_gz_sim` package -->
+  <gz_spawn_model world="$(var world)" model_string="$(var model_string)" entity_name="$(var entity_name)"
+		  x="$(var x)" y="$(var y)" z="$(var z)" >
+    <!-- Attributes: -->
+    <!-- world          (''): String world name in which to spawn agent
+	 - needed as Gazebo service path is `/world/{world_name}/create`
+	 - if this parameter is unset, the world name will be queried via a service call to Gazebo in `ros_gz_sim/src/create.cpp` -->
+    <!-- file           ('')    : filesystem path to SDF model file for load -->
+    <!-- model_string   ('')    : literal string-encoded sdf model file contents
+	 - not used if `file` is set -->
+    <!-- topic          ('')    : name of ROS topic from which to obtain literal string-encoded sdf model file contents via subscription
+	 - not used if `file or model_string` is set
+         - at least one of `file`, `model_string`, or `topic` must be set -->
+    <!-- entity_name    ('')    : string name to apply to the spawned Gazebo entity -->
+    <!-- allow_renaming (false) : if an entity with the requested name already exists, modify the requested name (instead of failure)  -->
+    <!-- x              (0)     : X component of initial position, in meters -->
+    <!-- y              (0)     : Y component of initial position, in meters -->
+    <!-- z              (0)     : Z component of initial position, in meters -->
+    <!-- R              (0)     : Roll component of initial orientation, in radians -->
+    <!-- P              (0)     : Pitch component of initial orientation, in radians -->
+    <!-- Y              (0)     : Yaw component of initial orientation, in radians -->
+  </gz_spawn_model>
+
+  <!-- ALTERNATIVE:  the `gz_spawn_model` launch action above is not well-designed... the `param`s on a `node` tag probably reads cleaner -->
+  <node pkg="ros_gz_sim" exec="create">
+    <!-- <param name="world"  value="$(var world)"/> -->
+    <param name="string" value="$(var model_string)"/>
+    <param name="name"   value="$(var entity_name)"/>
+
+    <param name="x" value="$(var x)"/>
+    <param name="y" value="$(var y)"/>
+    <param name="z" value="$(var z)"/>
+
+    <param name="R" value="$(var roll)"/>
+    <param name="P" value="$(var pitch)"/>
+    <param name="Y" value="$(var yaw)"/>
+  </node>
+
+
+  
+  <!--
+      ================================================================
+      | NOTE: all of the below nodes should be namespaced per-vehicle 
+      ================================================================
+  -->
+
+  <for_each values="$(var robots)">
+    <group>
+      <push_ros_namespace namespace="$(for-var name)"/>
+
+      <node pkg="ros_gz_sim" exec="create">
+	<!-- <param name="world"  value="$(var world)"/> -->
+	<param name="string" value="$(for-var sdf_string)"/>
+	<param name="name"   value="$(for-var name)"/>
+
+	<param name="x" value="$(for-var x)"/>
+	<param name="y" value="$(for-var y)"/>
+	<param name="z" value="$(for-var z)"/>
+
+	<param name="R" value="$(for-var roll)"/>
+	<param name="P" value="$(for-var pitch)"/>
+	<param name="Y" value="$(for-var yaw)"/>
+      </node>
+      
+      <!-- TODO: vrx_ros pose_tf_broadcaster (maybe, ros_gz_bridge might have this now) -->
+      <node pkg="vrx_ros" exec="pose_tf_broadcaster" />
+
+      <node pkg="robot_state_publisher" exec="robot_state_publisher">
+	<param name="use_sim_time"      value="true"/>
+
+	<!-- TODO: define `model_name` and `robot_desc` local variables -->
+	
+	<param name="frame_prefix"      value="TODO: $(for-var name)/"/>
+	<param name="robot_description" value="TODO: $(for-var urdf_string)"/>
+
+	<remap from="/joint_states" to="/$(for-var name)/joint_states"/>
+      </node>
+
+
+      
+      <!-- NOTE: Xi custom nodes -->
+      
+      <node pkg="virelex" exec="lidar_processor_node"
+	    args="$(for-var name)" />
+
+      <node pkg="virelex" exec="state_processor_node"
+	    args="$(for-var name) $(for-var goal)" />
+
+      <node pkg="virelex" exec="action_planner_node"
+	    args="$(var method) $(for-var name) $(var model_path) $(var agent_type)" />
+
+    </group>
+  </for_each>
+  
+  <node pkg="virelex"
+	exec="collision_detector_node"
+	args="$(var robot_names) $(var buoy_poses)" />
+  
+</launch>

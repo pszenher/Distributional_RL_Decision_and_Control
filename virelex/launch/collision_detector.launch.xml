@@ -11,4 +11,5 @@
 	exec="collision_detector_node"
 	name="collision_detector"
 	args="$(var robot_names) $(var buoy_poses)" />
+
 </launch>

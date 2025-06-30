@@ -4,13 +4,13 @@
   schematypens="http://www.w3.org/2001/XMLSchema"?>
 <launch>
 
-  <arg name="robot_name" default="wamv1"/>
-  <group>
-    <push_ros_namespace namespace="$(var robot_name)"/>
+  <arg name="robot_names" default="wamv1"/>
+
+  <node_list namespaces="$(var robot_names)">
     <node pkg="virelex"
 	  exec="lidar_processor_node"
-	  name="lidar_processor_node_$(var robot_name)"
-	  args="$(var robot_name)" />
-  </group>
+	  name="lidar_processor_node"
+	  args="$(ns 0)" />
+  </node_list>
   
 </launch>

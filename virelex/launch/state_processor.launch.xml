@@ -4,15 +4,20 @@
   schematypens="http://www.w3.org/2001/XMLSchema"?>
 <launch>
 
-  <arg name="robot_name" default="wamv1"/>
-  <arg name="robot_goal"/>
+  <!-- <arg name="robot_name" default="wamv1"/> -->
+  <!-- <arg name="robot_goal"/> -->
   
-  <group>
-    <push_ros_namespace namespace="$(var robot_name)"/>
-    <node pkg="virelex"
-	  exec="state_processor_node"
-	  name="state_processor_node_$(var robot_name)"
-	  args="$(var robot_name) $(var robot_goal)" />
-  </group>
+  <!-- default="{name: 'wamv1', goal: ...}" -->
+  <arg name="robots" />
+
+  <for_each values="$(var robots)">
+    <group>
+      <push_ros_namespace namespace="$(for-var name)"/>
+      <node pkg="virelex"
+	    exec="state_processor_node"
+	    name="state_processor_node"
+	    args="$(for-var name) $(for-var goal)" />
+    </group>
+  </for_each>
   
 </launch>

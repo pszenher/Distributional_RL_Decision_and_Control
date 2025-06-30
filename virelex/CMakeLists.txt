@@ -16,7 +16,6 @@ endif()
 # Find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
 find_package(message_filters REQUIRED)
 
 find_package(nav_msgs REQUIRED)
@@ -94,7 +93,7 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
-# Install launch and pretrained weight files
+# Install static resources
 install(DIRECTORY
   config
   launch
@@ -109,5 +108,4 @@ ament_python_install_package(${PROJECT_NAME}
   PACKAGE_DIR "python/${PROJECT_NAME}"
 )
 
-ament_export_dependencies(rosidl_default_runtime)
 ament_package()

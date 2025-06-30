@@ -35,6 +35,8 @@
 
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-scipy</exec_depend>
+
+  <exec_depend>ros_gz</exec_depend>
   
   <export>
     <build_type>ament_cmake</build_type>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+  <arg name="robots" default="{name: 'wamv1', goal: '0.0,0.0'}"/>
+  
+  <arg name="robot_names" default="wamv1"/>
+  <arg name="buoy_poses"  default="0,0,0"/>
+
+  <arg name="method"     default="RL"/>
+  <arg name="agent_type" default="AC-IQN"/>
+  <arg name="model_path" default="$(find-pkg-share virelex)/trained/traced_AC_IQN_model.pt"/>
+
+  <for_each values="$(var robots)">
+    <group>
+      <push_ros_namespace namespace="$(for-var name)"/>
+
+      <node pkg="virelex" exec="action_planner_node"
+	    args="$(var method) $(for-var name) $(var model_path) $(var agent_type)" />
+      
+      <node pkg="virelex" exec="lidar_processor_node"
+	    args="$(for-var name)" />
+      
+      <node pkg="virelex" exec="state_processor_node"
+	    args="$(for-var name) $(for-var goal)" />
+    </group>
+  </for_each>
+
+  <node pkg="virelex"
+	exec="collision_detector_node"
+	args="$(var robot_names) $(var buoy_poses)" />
+
+</launch>

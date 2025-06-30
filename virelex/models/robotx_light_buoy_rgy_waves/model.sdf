@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<sdf version="1.11">
+  <model name="robotx_light_buoy_rgy_waves">
+    <!--
+	NOTE: imported from `vrx_gz/worlds/scan_dock_deliver_task.sdf`
+	TODO: why is buoyancy information not in the base model?
+    -->
+    <!-- TODO: consider adding `merge="true"` -->
+    <include merge="true">
+      <!-- <name>robotx_light_buoy_rgy</name> -->
+      <!-- NOTE: set x/y pose position to 0, use world-level pose for spawning -->
+      <!-- <pose>0 0 0.32 0 0 0</pose> -->
+      <uri>robotx_light_buoy_rgy</uri>
+
+      <plugin name="vrx::PolyhedraBuoyancyDrag"
+	      filename="libPolyhedraBuoyancyDrag.so">
+	<!-- NOTE: decrease `fluid_density` from 1000 -> 500 -->
+	<fluid_density>500</fluid_density>
+	<fluid_level>0.0</fluid_level>
+	<!-- NOTE: decrease `linear_drag` from 1000.0 -> 10.0 -->
+	<linear_drag>10.0</linear_drag>
+	<!-- NOTE: decrease `angular_drag` from 200.0 -> 0.0 -->
+	<angular_drag>0.0</angular_drag>
+	<buoyancy name="buoyancy_base">
+	  <link_name>base_link</link_name>
+	  <pose>0 0 -0.1 0 0 0</pose>
+	  <geometry>
+	    <box>
+	      <size>1.5 1.5 0.4</size>
+	    </box>
+	  </geometry>
+	</buoyancy>
+	<buoyancy name="buoyancy_body">
+	  <link_name>base_link</link_name>
+	  <pose>0 0 0.8 0 0 0</pose>
+	  <geometry>
+	    <cylinder>
+	      <radius>0.2</radius>
+	      <length>0.15</length>
+	    </cylinder>
+	  </geometry>
+	</buoyancy>
+	<wavefield>
+	  <topic>/vrx/wavefield/parameters</topic>
+	</wavefield>
+      </plugin>
+    </include>
+  </model>
+</sdf>

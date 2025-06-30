@@ -11,8 +11,6 @@
   <maintainer email="pszenher@stevens.edu">Paul Szenher</maintainer>
   <license>MIT</license>
 
-  <buildtool_depend>ament_python</buildtool_depend>
-
   <export>
     <build_type>ament_python</build_type>
   </export>

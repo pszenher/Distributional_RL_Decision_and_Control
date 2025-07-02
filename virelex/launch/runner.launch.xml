@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+  <arg name="num_robots"
+       description="Number of robots spawned and used in the experiment"/>
+  <arg name="init_poses"
+       default="$(command '$(exec-in-pkg experiment_setup virelex) --num-robots $(var num_robots) init_poses' fail)"
+       description="2D initial pose of spawned experiment vehicles, encoded as a semicolon-delimitted list x,y,theta triples"/>
+  <arg name="goal_poses"
+       default="$(command '$(exec-in-pkg experiment_setup virelex) --num-robots $(var num_robots) goal_poses' fail)"
+       description="2D goal pose of spawned experiment vehicles, encoded as a semicolon-delimitted list of x,y pairs"/>
+
+  <log message="$(var init_poses)"/>
+  <log message="$(var goal_poses)"/>
+  
+  <arg name="world_name"
+       default="sydney_regatta"
+       description="String name of Gazebo world, as present on the &lt;world&gt; attribute of the loaded SDF data" />
+
+  <arg name="method"     default="RL"/>
+  <arg name="agent_type" default="AC-IQN"/>
+  <arg name="model_path" default="$(find-pkg-share virelex)/trained/traced_AC_IQN_model.pt"/>
+
+  <node pkg="virelex" exec="experiment_manager">
+    <param name="num_robots" value="$(var num_robots)" />
+    <param name="world_name" value="$(var world_name)" />
+  </node>
+  
+  <include file="$(find-pkg-share virelex)/launch/competition.launch.py">
+
+    <arg name="init_poses" value="$(var init_poses)" />
+    <arg name="goals"      value="$(var goal_poses)" />
+
+    <arg name="method"     value="$(var method)"    />
+    <arg name="agent_type" value="$(var agent_type)"/>
+    <arg name="model_path" value="$(var model_path)"/>
+
+    <arg name="world_name" value="$(var world_name)"/>
+
+  </include>
+
+</launch>

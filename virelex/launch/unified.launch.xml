@@ -15,7 +15,7 @@
       <push_ros_namespace namespace="$(for-var name)"/>
 
       <node pkg="virelex" exec="action_planner_node"
-	    args="$(var method) $(for-var name) $(var model_path) $(var agent_type)" />
+	    args="$(var method) $(for-var name) $(var model_path '') $(var agent_type '')" />
       
       <node pkg="virelex" exec="lidar_processor_node"
 	    args="$(for-var name)" />

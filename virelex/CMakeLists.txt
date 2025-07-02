@@ -108,4 +108,16 @@ ament_python_install_package(${PROJECT_NAME}
   PACKAGE_DIR "python/${PROJECT_NAME}"
 )
 
+install(FILES
+  "python/${PROJECT_NAME}/experiment.py"
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME "experiment_manager"
+)
+
+install(FILES
+  "scripts/experiment_setup.py"
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME "experiment_setup"
+)
+
 ament_package()

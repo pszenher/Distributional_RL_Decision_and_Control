@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
 
+  <!-- Robot name and goal parameters -->
   <arg name="robots" default="{name: 'wamv1', goal: '0.0,0.0'}"/>
-  
-  <arg name="robot_names" default="wamv1"/>
-  <arg name="buoy_poses"  default="0,0,0"/>
+
+  <arg name="world_name" default="sydney_regatta" />
 
   <arg name="method"     default="RL"/>
   <arg name="agent_type" default="AC-IQN"/>
@@ -24,9 +24,46 @@
 	    args="$(for-var name) $(for-var goal)" />
     </group>
   </for_each>
+  
+  <ros_gz_bridge bridge_name="world_control_bridge">
+    <service service_name="/world/$(var world_name)/control"
+             ros_type_name="ros_gz_interfaces/srv/ControlWorld"
+             gz_req_type_name="gz.msgs.WorldControl"
+	     gz_rep_type_name="gz.msgs.Boolean" />
+    <!--
+	dummy message to workaround bug in `ros_gz_bridge`
 
-  <node pkg="virelex"
-	exec="collision_detector_node"
-	args="$(var robot_names) $(var buoy_poses)" />
+        (init check only looks for topic handles, a bridge made only
+        of services will reinitialize every heartbeat)
+    -->
+    <topic ros_topic_name="/null" gz_topic_name="/null" ros_type_name="std_msgs/msg/Empty" gz_type_name="gz.msgs.Empty" direction="GZ_TO_ROS" />
+  </ros_gz_bridge>
+
+
+  <!-- <arg name="obstacles" default="" /> -->
+  <arg name="obstacles"
+       default="{ sdf_file: 'robotx_light_buoy_unlit',
+		  x: -465.0,
+		  y: 260.0   };
+		  
+		{ sdf_file: 'robotx_light_buoy_unlit',
+		  x: -460.0,
+		  y: 265.0    }"/>
+
+  <for_each values="$(var obstacles)">
+    <node pkg="ros_gz_sim" exec="create">
+      <param name="file" type="str" value="$(for-var sdf_file)"/>
+
+      <param name="x" value="$(for-var x)"/>
+      <param name="y" value="$(for-var y)"/>
+      <param name="z" value="$(for-var z 0.0)"/>
+
+      <param name="R" value="$(for-var roll 0.0)"/>
+      <param name="P" value="$(for-var pitch 0.0)"/>
+      <param name="Y" value="$(for-var yaw 0.0)"/>
+
+      <param name="allow_renaming" value="true"/>
+    </node>
+  </for_each>
 
 </launch>

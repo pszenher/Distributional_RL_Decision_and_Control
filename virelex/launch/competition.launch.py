@@ -105,9 +105,9 @@ def launch(context, *args, **kwargs):
             'robots',
             default_value=';'.join(json.dumps(d) for d in robots_dict),
         )
-        
 
         virelex_dir = get_package_share_directory('virelex')
+        world_name, ext = os.path.splitext(world_name)
 
         launch_processes.append(robot_names_arg)
         launch_processes.append(robot_goals_arg)
@@ -120,44 +120,42 @@ def launch(context, *args, **kwargs):
         launch_processes.append(IncludeLaunchDescription(
             FrontendLaunchDescriptionSource(f'{virelex_dir}/launch/unified.launch.xml'),
             launch_arguments={
-                'robots':      LaunchConfiguration('robots'),
+                'world_name': world_name,
                 
-                'robot_names': LaunchConfiguration('robot_names'),
-                'buoy_poses':  LaunchConfiguration('buoy_poses'),
+                'robots': LaunchConfiguration('robots'),
                 
+                'obstacles': ';'.join(
+                    str(params) for params in [
+                        {
+		            'sdf_file': 'robotx_light_buoy_unlit',
+		            'x': -500.0,
+		            'y': 225.0
+		        },
+                        *[
+                            {
+                                'sdf_file': 'robotx_light_buoy_unlit',
+                                'x': -500.0 + offset,
+                                'y':  225.0 + offset,
+                            }
+                            for offset in range(5,50,10)
+                        ],
+		        # {
+		        #     'sdf_file': 'robotx_light_buoy_unlit',
+		        #     'x': -485.0,
+		        #     'y': 240.0
+		        # },
+		        # {
+		        #     'sdf_file': 'robotx_light_buoy_unlit',
+		        #     'x': -450.0,
+		        #     'y': 275.0
+		        # },
+		    ]
+                ),
                 'method':     LaunchConfiguration('method'),
                 'agent_type': LaunchConfiguration('agent_type'),
                 'model_path': LaunchConfiguration('model_path'),
             }.items()
         ))
-
-        
-        # launch_processes.append(IncludeLaunchDescription(
-        #     FrontendLaunchDescriptionSource(f'{virelex_dir}/launch/lidar_processor.launch.xml'),
-        #     launch_arguments={'robot_names': LaunchConfiguration('robot_names')}.items()
-        # ))
-
-        # launch_processes.append(IncludeLaunchDescription(
-        #     FrontendLaunchDescriptionSource(f'{virelex_dir}/launch/state_processor.launch.xml'),
-        #     launch_arguments={'robots': LaunchConfiguration('robots')}.items()
-        # ))
-        # launch_processes.append(IncludeLaunchDescription(
-        #     FrontendLaunchDescriptionSource(f'{virelex_dir}/launch/action_planner.launch.xml'),
-        #     launch_arguments={'method':LaunchConfiguration('method'),
-        #                       'robot_names': LaunchConfiguration('robot_names'),
-        #                       'model_path': LaunchConfiguration('model_path'),
-        #                       'agent_type': LaunchConfiguration('agent_type')}.items()
-        # ))
-        # launch_processes.append(IncludeLaunchDescription(
-        #     FrontendLaunchDescriptionSource(f'{virelex_dir}/launch/collision_detector.launch.xml'),
-        #     launch_arguments={'robot_names': LaunchConfiguration('robot_names'),
-        #                       'buoy_poses': LaunchConfiguration('buoy_poses')}.items()
-        # ))
-        
-
-    world_name, ext = os.path.splitext(world_name)
-    # launch_processes.extend(vrx_gz.launch.simulation(world_name, headless, 
-    #                                                  gz_paused, extra_gz_args))
 
     # FIXME: this short-form doesn't register the event handler that the
     #        experiments rely on, refactor...

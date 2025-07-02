@@ -3,8 +3,13 @@
 <sdf version="1.9">
   <world name="sydney_regatta_minimal">
 
-    <physics name="4ms" type="dart">
-      <max_step_size>0.004</max_step_size>
+    <!-- <physics name="4ms" type="dart"> -->
+    <!--   <max_step_size>0.004</max_step_size> -->
+    <!--   <real_time_factor>1.0</real_time_factor> -->
+    <!-- </physics> -->
+
+    <physics name="50msFast" type="dart">
+      <max_step_size>0.05</max_step_size>
       <real_time_factor>1.0</real_time_factor>
     </physics>
 
@@ -22,7 +27,8 @@
         <scene>scene</scene>
         <ambient_light>0.4 0.4 0.4</ambient_light>
         <background_color>0.8 0.8 0.8</background_color>
-        <camera_pose>0 0 20 0 1.57 0</camera_pose>
+        <!-- <camera_pose>0 0 20 0 1.57 0</camera_pose> -->
+	<camera_pose>-460.0 238.0 23.0 0 1.0 3.0</camera_pose>
         <camera_clip>
           <near>0.25</near>
           <far>10000</far>

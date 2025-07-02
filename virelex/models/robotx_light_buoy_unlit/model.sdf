@@ -96,12 +96,12 @@
     <plugin name="vrx::PolyhedraBuoyancyDrag"
 	    filename="libPolyhedraBuoyancyDrag.so">
       <!-- NOTE: decrease `fluid_density` from 1000 -> 500 -->
-      <fluid_density>1000</fluid_density>
+      <fluid_density>500</fluid_density>
       <fluid_level>0.0</fluid_level>
       <!-- NOTE: decrease `linear_drag` from 1000.0 -> 10.0 -->
-      <linear_drag>1000.0</linear_drag>
+      <linear_drag>10.0</linear_drag>
       <!-- NOTE: decrease `angular_drag` from 200.0 -> 0.0 -->
-      <angular_drag>200.0</angular_drag>
+      <angular_drag>0.0</angular_drag>
       <buoyancy name="buoyancy_base">
 	<link_name>base_link</link_name>
 	<pose>0 0 -0.1 0 0 0</pose>

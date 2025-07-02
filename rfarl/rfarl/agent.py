@@ -1,14 +1,14 @@
 import torch
 import torch.optim as optim
-from policy.AC_IQN_model import AC_IQN_Policy
-from policy.IQN_model import IQN_Policy
-from policy.DDPG_model import DDPG_Policy
-from policy.DQN_model import DQN_Policy
-from policy.Rainbow_model import Rainbow_Policy
-from policy.SAC_model import SAC_Policy
-from policy.replay_buffer import ReplayBuffer
-from policy.replay_memory_rainbow import ReplayMemory
-from marinenav_env.envs.utils.robot import Robot
+from .policy.AC_IQN_model import AC_IQN_Policy
+from .policy.IQN_model import IQN_Policy
+from .policy.DDPG_model import DDPG_Policy
+from .policy.DQN_model import DQN_Policy
+from .policy.Rainbow_model import Rainbow_Policy
+from .policy.SAC_model import SAC_Policy
+from .utils.replay_buffer import ReplayBuffer
+from .policy.replay_memory_rainbow import ReplayMemory
+from .envs.marinenav.vehicles.wamv import Robot
 import numpy as np
 import random
 import time

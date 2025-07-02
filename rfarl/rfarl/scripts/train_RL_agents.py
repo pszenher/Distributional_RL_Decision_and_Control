@@ -5,9 +5,10 @@ from multiprocessing import Pool
 import json
 from datetime import datetime
 import numpy as np
-from marinenav_env.envs.marinenav_env import MarineNavEnv3
-from policy.agent import Agent
-from policy.trainer import Trainer
+
+from rfarl.envs.marinenav.env import MarineNavEnv3
+from rfarl.agent import Agent
+from rfarl.policy.trainer import Trainer
 
 parser = argparse.ArgumentParser(description="Train IQN model")
 

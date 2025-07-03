@@ -1,0 +1,79 @@
+plugins:
+- plugin: 'libgz-sim-pose-publisher-system'
+  topics:
+    # FIXME: msg_type is `gz.msgs.Pose` unless "use_pose_vector_msg"
+    #        element is set; represent this somehow
+    - msg_type: 'gz.msgs.Pose_V'
+      topic:
+        prefix_type: 'scoped'
+        base: '/pose'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.Pose_V'
+      topic:
+        prefix_type: 'scoped'
+        base: '/pose'
+        suffix: '_static'
+      direction: 'pub'
+
+- plugin: 'gz-sim-joint-state-publisher-system'
+  topics:
+    - msg_type: 'gz.msgs.Model'
+      topic:
+        prefix_type: 'scoped'
+        base: '/joint_state'
+        override: 'topic'
+      direction: 'pub'
+
+- plugin: 'gz-sim-odometry-publisher-system'
+  topics:
+    # FIXME: using python f-string template style variable for
+    #        {model_name} here; need to figure out better way to
+    #        represent this...
+    - msg_type: 'gz.msgs.Odometry'
+      topic:
+        prefix_type: 'absolute'
+        base: '/model/{model_name}/odometry'
+        override: 'odom_topic'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.OdometryWithCovariance'
+      topic:
+        prefix_type: 'absolute'
+        base: '/model/{model_name}/odometry_with_covariance'
+        override: 'odom_covariance_topic'
+      direction: 'pub'
+
+- plugin: 'gz-sim-detachable-joint-system'
+  topics:
+    - msg_type: 'gz.msgs.String'
+      topic:
+        prefix_type: 'absolute'
+        base: '/model/{child_model}/detachable_joint/state'
+        override: 'output_topic'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.Empty'
+      topic:
+        prefix_type: 'absolute'
+        base: '/model/{model_name}/detachable_joint/detach'
+        override: 'detach_topic'
+      direction: 'sub'
+    - msg_type: 'gz.msgs.Empty'
+      topic:
+        prefix_type: 'absolute'
+        base: '/model/{model_name}/detachable_joint/attach'
+        override: 'attach_topic'
+      direction: 'sub'
+
+# # TODO: implement
+# - plugin: 'gz-sim-joint-controller-system'
+
+# # TODO: implement
+# - plugin: 'gz-sim-joint-trajectory-controller-system'
+
+# # TODO: implement
+# - plugin: 'gz-sim-track-controller-system'
+
+# # TODO: implement
+# - plugin: 'gz-sim-tracked-vehicle-system'
+
+# # TODO: implement
+# - plugin: 'gz-sim-velocity-control-system'

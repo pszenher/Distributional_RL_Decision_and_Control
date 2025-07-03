@@ -1,0 +1,35 @@
+{
+
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  
+  "title": "GzSensorSpec",
+  "description": "Specification of Gazebo sensor type name with published topic specifications",
+
+  "type": "object",
+  "properties": {
+    "sensor": {
+      "description": "Value of `type` field in SDF sensor definition",
+      "type": "string"
+    },
+    "topics": {
+      "type": "array",
+      "items": {
+	"$ref": "gz_topic_spec.json"
+      }
+    },
+    "aliases": {
+      "description": "Alternative sdf sensor type strings which map to this canonical sensor type",
+      "type": "array",
+      "items": { "type": "string" },
+      "default": [],
+      "uniqueItems": true
+    },
+    "deprecated": {
+      "description": "Boolean flag denoting deprecation status of the referenced sensor type",
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": ["sensor", "topics"],
+  "additionalProperties": false
+}

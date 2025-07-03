@@ -1,0 +1,1 @@
+prepend-non-duplicate;PYTHONPATH;@CMAKE_INSTALL_PREFIX@/opt/@PROJECT_NAME@/lib/python

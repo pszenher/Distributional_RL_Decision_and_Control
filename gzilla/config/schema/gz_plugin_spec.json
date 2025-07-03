@@ -1,0 +1,24 @@
+{
+
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  
+  "title": "GzPluginSpec",
+  "description": "Mapping from Gazebo plugin library file name to published topic specifications",
+
+  "type": "object",
+  "properties": {
+    "plugin": {
+      "description": "Value of `filename` field in SDF plugin definition",
+      "type": "string"
+    },
+    "topics": {
+      "type": "array",
+      "items": {
+	"$ref": "gz_topic_spec.json"
+      }
+    }
+  },
+  "required": ["plugin"],
+  "required": ["topics"],
+  "additionalProperties": false
+}

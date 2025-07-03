@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+set -o errexit \
+    -o nounset \
+    -o pipefail
+
+tmp_urdf_file=$(mktemp "${TMPDIR:-/tmp}/urdf2sdf.XXXXXX.urdf")
+
+function cleanup {
+    rm "${tmp_urdf_file}"    
+}
+
+if (( ${#} > 2 ))
+then
+    echo "${0}: Expected at most 2 arguments" >&2
+    cleanup
+    exit 1
+elif (( ${#} == 1 )) && [[ "${1}" != "-" ]]
+then
+    echo "Converting URDF arg file '${1}' to SDF on stdout..." >&2
+    cp "${1}" "${tmp_urdf_file}"
+elif (( ${#} == 2 )) && [[ "${1}" == "-e" ]]
+then
+    env_var_val="${!2}"
+    if [[ -z "${env_var_val}" ]]
+    then
+	echo "${0}: -e flag passed, but env var '${2}' not set in environment"
+	cleanup
+	exit 1
+    fi
+    echo "Converting URDF from env var '${2}' to SDF on stdout..." >&2
+    echo "${env_var_val}" > "${tmp_urdf_file}"
+else
+    echo "Converting URDF on stdin to SDF on stdout..." >&2
+    cat > "${tmp_urdf_file}"
+fi
+
+gz sdf -p "${tmp_urdf_file}"
+
+cleanup

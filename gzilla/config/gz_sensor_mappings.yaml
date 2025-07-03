@@ -1,0 +1,297 @@
+# The type name of the sensor. By default, SDFormat supports types
+# air_pressure, altimeter, camera, contact, boundingbox_camera,
+# boundingbox, custom, depth_camera, depth, force_torque, gps,
+# gpu_lidar, gpu_ray, imu, lidar, logical_camera, magnetometer,
+# multicamera, navsat, ray, rfid, rfidtag, rgbd_camera, rgbd,
+# segmentation_camera, segmentation, sonar, thermal_camera, thermal,
+# wireless_receiver, and wireless_transmitter.
+
+# The "ray", "gpu_ray", and "gps" types are equivalent to "lidar",
+# "gpu_lidar", and "navsat", respectively. It is preferred to use
+# "lidar", "gpu_lidar", and "navsat" since "ray", "gpu_ray", and "gps"
+# will be deprecated. The "ray", "gpu_ray", and "gps" types are
+# maintained for legacy support.
+
+sensors:
+- sensor: 'air_pressure'
+  topics:
+    - msg_type: 'gz.msgs.FluidPressure'
+      topic:
+        prefix_type: 'scoped'
+        base: '/air_pressure'
+      direction: 'pub'
+
+- sensor: 'air_speed'
+  topics:
+    - msg_type: 'gz.msgs.AirSpeed'
+      topic:
+        prefix_type: 'scoped'
+        base: '/air_speed'
+      direction: 'pub'
+  
+- sensor: 'altimeter'
+  topics:
+    - msg_type: 'gz.msgs.Altimeter'
+      topic:
+        prefix_type: 'scoped'
+        base: '/altimeter'
+      direction: 'pub'
+        
+- sensor: 'camera'
+  topics:
+    - msg_type: 'gz.msgs.CameraInfo'
+      topic:
+        prefix_type: 'scoped'
+        base: '/image'
+        # XXX: (all) CameraInfo topics are set by the first valid option below:
+        #   - <camera_info_topic>
+        #   - {this->Topic()}/camera_info
+        #   - {scope}/{camera_type_suffix}/camera_info
+        suffix: '/camera_info'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.Image'
+      topic:
+        prefix_type: 'scoped'
+        base: '/image'
+      direction: 'pub'
+      
+- sensor: 'contact'
+  topics:
+    - msg_type: 'gz.msgs.Contacts'
+      topic:
+        prefix_type: 'scoped'
+        base: '/contact'
+      direction: 'pub'
+- sensor: 'boundingbox_camera'
+  aliases: ['boundingbox']
+  topics:
+    - msg_type: 'gz.msgs.Image'
+      topic:
+        # XXX: this parameter is set as a function of the value of <topic>
+        #   '{this->Topic()}_image'
+        prefix_type: 'scoped'
+        base: '/boundingbox'
+        suffix: '_image'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.CameraInfo'
+      topic:
+        prefix_type: 'scoped'
+        base: '/boundingbox'
+        suffix: '/camera_info'
+      direction: 'pub'
+    # FIXME: this is a case of 2 mutually-exclusive message types on a
+    #        single topic name, depending on config; should have a way
+    #        to express this...
+    - msg_type: 'gz.msgs.AnnotatedOriented3DBox_V'
+      topic:
+        prefix_type: 'scoped'
+        base: '/boundingbox'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.AnnotatedAxisAligned2DBox_V'
+      topic:
+        prefix_type: 'scoped'
+        base: '/boundingbox'
+      direction: 'pub'
+
+# TODO: implement
+# NOTE: Gazebo builtins include `dvl` and `environmental_sensor/*`
+- sensor: 'custom'
+  topics: []
+  
+- sensor: 'depth_camera'
+  aliases: ['depth']
+  topics:
+    - msg_type: 'gz.msgs.CameraInfo'
+      topic:
+        prefix_type: 'scoped'
+        base: '/depth_image'
+        suffix: '/camera_info'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.Image'
+      topic:
+        prefix_type: 'scoped'
+        base: '/depth_image'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.PointCloudPacked'
+      topic:
+        prefix_type: 'scoped'
+        base: '/depth_image'
+        suffix: '/points'
+      direction: 'pub'
+
+- sensor: 'force_torque'
+  topics:
+    - msg_type: 'gz.msgs.Wrench'
+      topic:
+        prefix_type: 'scoped'
+        base: '/forcetorque'
+      direction: 'pub'
+- sensor: 'gpu_lidar'
+  aliases: ['gpu_ray']
+  topics:
+    - msg_type: 'gz.msgs.LaserScan'
+      topic:
+        prefix_type: 'scoped'
+        base: '/scan'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.PointCloudPacked'
+      topic:
+        prefix_type: 'scoped'
+        base: '/scan'
+        suffix: '/points'
+      direction: 'pub'
+- sensor: 'imu'
+  topics:
+    - msg_type: 'gz.msgs.IMU'
+      topic:
+        prefix_type: 'scoped'
+        base: '/imu'
+      direction: 'pub'
+- sensor: 'lidar'
+  aliases: ['ray']
+  topics:
+    - msg_type: 'gz.msgs.LaserScan'
+      topic:
+        prefix_type: 'absolute'
+        base: '/lidar'
+      direction: 'pub'
+- sensor: 'logical_camera'
+  topics:
+    - msg_type: 'gz.msgs.LogicalCameraImage'
+      topic:
+        prefix_type: 'scoped'
+        base: '/logical_camera'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.LogicalCameraSensor'
+      topic:
+        prefix_type: 'scoped'
+        base: '/logical_camera'
+        suffix: '/frustum'
+      direction: 'pub'
+- sensor: 'magnetometer'
+  topics:
+    - msg_type: 'gz.msgs.Magnetometer'
+      topic:
+        prefix_type: 'scoped'
+        base: '/magnetometer'
+      direction: 'pub'
+
+# TODO: is this defined in post-ign Gazebo?
+- sensor: 'multicamera'
+  topics: []
+  deprecated: true
+
+- sensor: 'navsat'
+  aliases: ['gps']
+  topics:
+    - msg_type: 'gz.msgs.NavSat'
+      topic:
+        prefix_type: 'scoped'
+        base: '/navsat'
+      direction: 'pub'
+
+# XXX: rfid-related tags are unimplemented post-ign, but not
+#      necessarily explicitly deprecated
+- sensor: 'rfid'
+  topics: []
+  deprecated: true
+- sensor: 'rfidtag'
+  topics: []
+  deprecated: true
+
+
+- sensor: 'rgbd_camera'
+  aliases: ['rgbd']
+  topics:
+    - msg_type: 'gz.msgs.CameraInfo'
+      topic:
+        prefix_type: 'scoped'
+        base: ''
+        suffix: '/camera_info'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.Image'
+      topic:
+        prefix_type: 'scoped'
+        base: ''
+        suffix: '/image'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.Image'
+      topic:
+        prefix_type: 'scoped'
+        base: ''
+        suffix: '/depth_image'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.PointCloudPacked'
+      topic:
+        prefix_type: 'scoped'
+        base: ''
+        suffix: '/points'
+      direction: 'pub'
+
+- sensor: 'segmentation_camera'
+  aliases: ['segmentation']
+  topics:
+    - msg_type: 'gz.msgs.Image'
+      topic:
+        prefix_type: 'scoped'
+        base: '/segmentation'
+        suffix: '/colored_map'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.Image'
+      topic:
+        prefix_type: 'scoped'
+        base: '/segmentation'
+        suffix: '/labels_map'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.CameraInfo'
+      topic:
+        prefix_type: 'scoped'
+        base: '/segmentation'
+        suffix: '/camera_info'
+      direction: 'pub'
+
+# XXX: sonar-related tags are unimplemented post-ign, but not
+#      necessarily explicitly deprecated
+- sensor: 'sonar'
+  topics: []
+  deprecated: true
+  
+- sensor: 'thermal_camera'
+  aliases: ['thermal']
+  topics:
+    - msg_type: 'gz.msgs.Image'
+      topic:
+        prefix_type: 'scoped'
+        base: '/image'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.CameraInfo'
+      topic:
+        prefix_type: 'scoped'
+        base: '/image'
+        suffix: '/camera_info'
+      direction: 'pub'
+
+- sensor: 'wide_angle_camera'
+  aliases: ['wideanglecamera']
+  topics:
+    - msg_type: 'gz.msgs.Image'
+      topic:
+        prefix_type: 'scoped'
+        base: '/image'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.CameraInfo'
+      topic:
+        prefix_type: 'scoped'
+        base: '/image'
+        suffix: '/camera_info'
+      direction: 'pub'
+        
+# XXX: wireless-related tags are unimplemented post-ign, but not
+#      necessarily explicitly deprecated (though there is some kind of
+#      rf tx/rx setup in `gz-sim`)
+- sensor: 'wireless_receiver'
+  topics: []
+  deprecated: true
+- sensor: 'wireless_transmitter'
+  topics: []
+  deprecated: true

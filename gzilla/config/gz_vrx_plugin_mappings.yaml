@@ -1,0 +1,33 @@
+plugins:
+- plugin: 'libScoringPlugin'
+  # TODO: these topics are common among all plugins which inherit from
+  #       `ScoringPlugin`, i.e., 'libNavigationScoringPlugin'; collate
+  #       them in some meaningful way...
+  topics:
+    - msg_type: 'gz.msgs.Param'
+      topic:
+        prefix_type: 'absolute'
+        base: '/vrx/task/info'
+        override: 'task_info_topic'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.Empty'
+      topic:
+        prefix_type: 'absolute'
+        base: "/vrx/release"
+        override: 'release_topic'
+      direction: 'pub'
+    
+- plugin: 'libUSVWind'
+  topics:
+    - msg_type: 'gz.msgs.Float'
+      topic:
+        prefix_type: 'absolute'
+        base: '/vrx/debug/wind/speed'
+        override: 'topic_wind_speed'
+      direction: 'pub'
+    - msg_type: 'gz.msgs.Float'
+      topic:
+        prefix_type: 'absolute'
+        base: '/vrx/debug/wind/direction'
+        override: 'topic_wind_direction'
+      direction: 'pub'

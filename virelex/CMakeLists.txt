@@ -5,6 +5,7 @@ project(virelex)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 find_package(Torch QUIET)
 if ( NOT Torch_FOUND )
+  # TODO: consider using `ament_vendor` here
   include(FetchTorch)
 endif()
 
@@ -29,7 +30,6 @@ find_package(virelex_msgs REQUIRED)
 
 # Hooks
 ament_environment_hooks("hooks/resource_paths.dsv.in")
-ament_environment_hooks("hooks/resource_paths.sh")
 
 # Include directories
 include_directories(
@@ -101,7 +101,7 @@ install(DIRECTORY
   models
   urdf
   worlds
-  DESTINATION share/${PROJECT_NAME}/
+  DESTINATION share/${PROJECT_NAME}
 )
 
 ament_python_install_package(${PROJECT_NAME}

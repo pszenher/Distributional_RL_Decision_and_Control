@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+  <arg name="world_name" default="sydney_regatta_minimal" description="Name of world"/>
+  
+  <let name="robots" value="
+    {
+        urdf_xacro_file: '$(find-pkg-share virelex)/urdf/wamv_gazebo.urdf.xacro',
+	name: 'wamv1',
+	x: -485.0,
+	y: 240.0,
+	Y: 1,
+    };
+    {
+        urdf_xacro_file: '$(find-pkg-share virelex)/urdf/wamv_gazebo.urdf.xacro',
+	name: 'wamv2',
+	x: -460.0,
+	y: 275.0,
+	Y: 2.4,
+    }
+    "/>
+  
+  <for_each values="$(var robots)">
+    <group>
+      <push_ros_namespace namespace="$(for-var name)"/>
+
+      <let name="urdf_string"
+	   value="$(command 'xacro $(for-var urdf_xacro_file) namespace:=$(for-var name) vrx_sensors_enabled:=true thruster_config:=H' fail)"/>
+      <set_env name="urdf_string" value="$(var urdf_string)" />
+      <let name="sdf_string" value="$(command 'urdf2sdf -e urdf_string' warn)"/>
+      
+      <ros_gz_payload_bridge world_name="$(var world_name)">
+	<sdf string="$(var sdf_string)" world_name="$(var world_name)" entity_name="$(for-var name)" />
+      </ros_gz_payload_bridge>
+    </group>
+
+    </for_each>
+  </launch>

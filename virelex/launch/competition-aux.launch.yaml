@@ -1,0 +1,111 @@
+%YAML 1.2
+---
+launch:
+  - arg: { name: "world_name",     default: "sydney_regatta_minimal", description: "String name of Gazebo <world> entity" }
+  - arg: { name: "world_sdf_file", default: "$(var world_name).sdf",  description: "String name of Gazebo <world> entity" }
+
+  - arg:
+      name: "robots"
+      default: |
+        { urdf_xacro_file: '$(find-pkg-share virelex)/urdf/wamv_gazebo.urdf.xacro', name: 'wamv1', x:  5.0, y: 0.0 };
+        { urdf_xacro_file: '$(find-pkg-share virelex)/urdf/wamv_gazebo.urdf.xacro', name: 'wamv2', x: -5.0, y: 0.0 }
+
+  - executable:
+      cmd: "gz sim -s $(var world_sdf_file)"
+      name: "gazebo_server"
+      output: "both"
+
+  - executable:
+      cmd: "gz sim -g"
+      name: "gazebo_gui"
+      output: "both"
+
+  - ros_gz_bridge:
+      bridge_name: "virelex_bridge_global"
+      config_file: ""
+      service:
+        # NOTE: this bridge isn't enabled by VRX-proper (as the
+        #       `ros_gz_interfaces` package at the time of VRX's
+        #       primary development was in shambles iirc)
+        - service_name: "/world/$(var world_name)/control"
+          ros_type_name: "ros_gz_interfaces/srv/ControlWorld"
+          gz_req_type_name: "gz.msgs.WorldControl"
+          gz_rep_type_name: "gz.msgs.Boolean" />
+      topic:
+        - ros_topic_name: "/clock"
+          gz_topic_name: "/clock"
+          ros_type_name: "rosgraph_msgs/msg/Clock"
+          gz_type_name: "gz.msgs.Clock"
+          direction: "GZ_TO_ROS"
+
+        - ros_topic_name: "/vrx/task/info"
+          gz_topic_name: "/vrx/task/info"
+          ros_type_name: "ros_gz_interfaces/msg/ParamVec"
+          gz_type_name: "gz.msgs.Param"
+          direction: "GZ_TO_ROS"
+
+        # NOTE: only enabled in VRX if `competition_mode` is `false`?
+        - ros_topic_name: "/vrx/debug/wind/speed"
+          gz_topic_name: "/vrx/debug/wind/speed"
+          ros_type_name: "std_msgs/msg/Float32"
+          gz_type_name: "gz.msgs.Float"
+          direction: "GZ_TO_ROS"
+
+        # NOTE: only enabled in VRX if `competition_mode` is `false`?
+        - ros_topic_name: "/vrx/debug/wind/direction"
+          gz_topic_name: "/vrx/debug/wind/direction"
+          ros_type_name: "std_msgs/msg/Float32"
+          gz_type_name: "gz.msgs.Float"
+          direction: "GZ_TO_ROS"
+
+  - for_each:
+      values: "$(var robots)"
+      group:
+        - push_ros_namespace: { namespace: "$(for-var name)" }
+        - let:
+            name: "urdf_string"
+            value: "$(command 'xacro $(for-var urdf_xacro_file) namespace:=$(for-var name) vrx_sensors_enabled:=true thruster_config:=H' fail)"
+        - set_env:
+            name: "urdf_string"
+            value: "$(var urdf_string)"
+        - let:
+            name: "sdf_string"
+            value: "$(command 'urdf2sdf -e urdf_string' warn)"
+
+        - node:
+            pkg: "virelex"
+            exec: "gz_spawn"
+            param:
+              world_name: "$(var world_name)"
+              entity_name: "$(for-var name)"
+
+              sdf: { string: "$(var sdf_string)" }
+              pose: {
+                x:     "$(for-var x)",
+                y:     "$(for-var y)",
+                z:     "$(for-var z)",
+                roll:  "$(for-var roll)",
+                pitch: "$(for-var pitch)",
+                yaw:   "$(for-var yaw)",
+              }
+
+        - ros_gz_payload_bridge:
+            sdf:
+              - string: "$(var sdf_string)"
+                world_name: "$(var world_name)"
+                entity_name: "$(for-var name)"
+
+        - node:
+            pkg:  "robot_state_publisher"
+            exec: "robot_state_publisher"
+            param:
+              - { name: "use_sim_time", value: "true" }
+              - { name: "frame_prefix", value: "$(for-var name)" }
+              - { name: "robot_description", value: "$(var urdf_string)" }
+
+  - timer:
+      period: 5
+      executable:
+        - cmd: "gz topic -l"
+          name: "gz_topics_list"
+          output: "both"

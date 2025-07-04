@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+
+  <!-- FIXME: this is brittle;  TODO: properly handle file/world name mismatch... -->
+  <arg name="world_name" default="sydney_regatta_minimal" description="Name of world"/>
+  <arg name="world_sdf_file" default="$(var world_name).sdf" description="Name of world"/>
+  
+  <arg name="sim_mode" default="full" description="Simulation mode: 'full', 'sim', or 'bridge'">
+    <!-- full:   spawns robot and launch ros_gz bridges  -->
+    <!-- sim:    spawns robot only                       -->
+    <!-- bridge: launch ros_gz bridges only              -->
+  </arg>
+
+  <!-- VRX base args -->
+  <arg name="bridge_competition_topics" default="True" description="Enable gz/ros bridge for competition topics"/>
+  <!-- <arg name="config_file" default="" description="Yaml configuration file to spawn"/> -->
+  <arg name="robot" default="" description="Name of robot to spawn if specified"/>
+  <arg name="headless" default="" description="Run simulation headless (no GUI)"/>
+  <arg name="urdf" default="" description="URDF file of the wam-v model"/>
+  <arg name="paused" default="" description="Start the simulation paused"/>
+  <arg name="competition_mode" default="False" description="Disable debug topics"/>
+  <arg name="extra_gz_args" default="" description="Additional arguments to be passed to gz sim"/>
+
+  <!-- Xi's custom args -->
+  <arg name="method" default="" description="Action planner method ('MPC', 'APF', or 'RL')"/>
+  <arg name="agent_type" default="" description="When method=='RL', RL agent type of action planner"/>
+  <arg name="model_path" default="" description="When method=='RL', filesystem path to RL agent model"/>
+  <arg name="init_poses" default="" description="Initial poses of robots in the format: 'x_1,y_1,theta_1;..."/>
+  <arg name="goals" default="" description="Goals of robots in the format: 'x_1,y_1;...'"/>
+  <arg name="buoy_poses" default="" description="Positions and radii of bouys in the format: 'x_1,y_1,r_1;...'"/>
+
+  <arg name="robot_names" default="" description="Space-delimited list of robot names"/>
+
+  <executable cmd="gz sim -v 4 -s $(var world_sdf_file)"
+	      name="gazebo-server"
+	      output="both" />
+
+  <executable cmd="gz sim -g"
+	      name="gazebo-gui"
+	      output="both" />
+    
+  <ros_gz_bridge bridge_name="virelex_bridge_global" config_file="">
+
+    <topic ros_topic_name="/clock"
+	   gz_topic_name="/clock"
+           ros_type_name="rosgraph_msgs/msg/Clock"
+	   gz_type_name="gz.msgs.Clock"
+	   direction="GZ_TO_ROS" />
+
+    <topic ros_topic_name="/vrx/task/info"
+	   gz_topic_name="/vrx/task/info"
+	   ros_type_name="ros_gz_interfaces/msg/ParamVec"
+	   gz_type_name="gz.msgs.Param"
+	   direction="GZ_TO_ROS" /> 
+
+    <!-- NOTE: only enabled in VRX if `competition_mode` is `false`? -->
+    <topic ros_topic_name="/vrx/debug/wind/speed"
+	   gz_topic_name="/vrx/debug/wind/speed"
+	   ros_type_name="std_msgs/msg/Float32"
+	   gz_type_name="gz.msgs.Float"
+	   direction="GZ_TO_ROS" />
+
+    <!-- NOTE: only enabled in VRX if `competition_mode` is `false`? -->
+    <topic ros_topic_name="/vrx/debug/wind/direction"
+	   gz_topic_name="/vrx/debug/wind/direction"
+	   ros_type_name="std_msgs/msg/Float32"
+	   gz_type_name="gz.msgs.Float"
+	   direction="GZ_TO_ROS" />
+
+    <!--
+	NOTE: this bridge isn't enabled by VRX-proper (as the
+        `ros_gz_interfaces` package at the time of VRX's primary
+        development was in shambles iirc)
+
+        However, it is a very useful functionality to have exposed via
+        ROS, so we'll do so here.
+
+        Manually calling this service for i.e., pause, looks like:
+        ros2 service call \
+	    /world/${world_name}/control \
+	    ros_gz_interfaces/srv/ControlWorld    \
+	    '{ world_control: {pause: True} }'
+    -->
+    <service service_name="/world/$(var world_name)/control"
+             ros_type_name="ros_gz_interfaces/srv/ControlWorld"
+             gz_req_type_name="gz.msgs.WorldControl"
+	     gz_rep_type_name="gz.msgs.Boolean" />
+    
+  </ros_gz_bridge>
+
+  <let name="robots" value="
+    {
+        urdf_xacro_file: '$(find-pkg-share virelex)/urdf/wamv_gazebo.urdf.xacro',
+	name: 'wamv1',
+	x: -485.0,
+	y: 240.0,
+	Y: 1,
+    };
+    {
+        urdf_xacro_file: '$(find-pkg-share virelex)/urdf/wamv_gazebo.urdf.xacro',
+	name: 'wamv2',
+	x: -460.0,
+	y: 275.0,
+	Y: 2.4,
+    }
+    "/>
+
+  <for_each values="$(var robots)">
+    <group>
+      <push_ros_namespace namespace="$(for-var name)"/>
+
+      <let name="urdf_string"
+	   value="$(command 'xacro $(for-var urdf_xacro_file) namespace:=$(for-var name) vrx_sensors_enabled:=true thruster_config:=H' fail)"/>
+      <set_env name="urdf_string" value="$(var urdf_string)" />
+      <let name="sdf_string" value="$(command 'urdf2sdf -e urdf_string' warn)"/>
+
+      <!-- <node pkg="virelex" exec="gz_spawn"> -->
+      <!-- 	<param name="world_name" type="str" value="$(var world_name)"/> -->
+      <!-- 	<param name="entity_name" type="str" value="$(for-var name)"/> -->
+
+      <!-- 	<param name="sdf"> -->
+      <!-- 	  <param name="string" value="$(var sdf_string)" /> -->
+      <!-- 	</param> -->
+	
+      <!-- 	<param name="pose"> -->
+      <!-- 	  <param name="x" value="$(for-var x)"/> -->
+      <!-- 	  <param name="y" value="$(for-var y)"/> -->
+      <!-- 	  <param name="z" value="$(for-var z 0.0)"/> -->
+
+      <!-- 	  <param name="roll"  value="$(for-var roll 0.0)"/> -->
+      <!-- 	  <param name="pitch" value="$(for-var pitch 0.0)"/> -->
+      <!-- 	  <param name="yaw"   value="$(for-var yaw 0.0)"/> -->
+      <!-- 	</param> -->
+      <!-- </node> -->
+      
+      <node pkg="ros_gz_sim" exec="create">
+	<!-- <param name="world"  value="$(var world_name)"/> -->
+	<param name="string" type="str" value="$(var sdf_string)"/>
+	<param name="name"   type="str" value="$(for-var name)"/>
+
+	<param name="x" value="$(for-var x)"/>
+	<param name="y" value="$(for-var y)"/>
+	<param name="z" value="$(for-var z 0.0)"/>
+
+	<param name="R" value="$(for-var roll 0.0)"/>
+	<param name="P" value="$(for-var pitch 0.0)"/>
+	<param name="Y" value="$(for-var yaw 0.0)"/>
+      </node>
+
+      <!-- <ros_gz_bridge bridge_name="virelex_bridge_vehicle"> -->
+      <!-- 	<topic ros_topic_name="pose" -->
+      <!-- 	       gz_topic_name="/model/$(for-var name)/pose" -->
+      <!--          ros_type_name="tf2_msgs/msg/TFMessage" -->
+      <!-- 	       gz_type_name="gz.msgs.Pose_V" -->
+      <!-- 	       direction="GZ_TO_ROS" /> -->
+
+      <!-- 	<topic ros_topic_name="pose_static" -->
+      <!-- 	       gz_topic_name="/model/$(for-var name)/pose_static" -->
+      <!--          ros_type_name="tf2_msgs/msg/TFMessage" -->
+      <!-- 	       gz_type_name="gz.msgs.Pose_V" -->
+      <!-- 	       direction="GZ_TO_ROS" /> -->
+
+      <!-- 	<topic ros_topic_name="joint_states" -->
+      <!-- 	       gz_topic_name="/world/$(var world_name)/model/$(for-var name)/joint_state" -->
+      <!--          ros_type_name="sensor_msgs/msg/JointState" -->
+      <!-- 	       gz_type_name="gz.msgs.Model" -->
+      <!-- 	       direction="GZ_TO_ROS" /> -->
+
+      <!-- 	<topic ros_topic_name="scan/points" -->
+      <!-- 	       gz_topic_name="/world/$(var world_name)/model/$(for-var name)/link/$(for-var name)/base_link/sensor/lidar_wamv_sensor/scan/points" -->
+      <!--          ros_type_name="sensor_msgs/msg/PointCloud2" -->
+      <!-- 	       gz_type_name="gz.msgs.PointCloudPacked" -->
+      <!-- 	       direction="GZ_TO_ROS" /> -->
+      <!-- 	<!-\- /world/sydney_regatta_minimal/model/wamv1/link/wamv1/base_link/sensor/lidar_wamv_sensor/scan/points -\-> -->
+		       
+      <!-- </ros_gz_bridge> -->
+
+       <!-- bridge_name="$(for-var name)_bridge" -->
+      <ros_gz_payload_bridge world_name="$(var world_name)" model_name="$(for-var name)">
+	<sdf string="$(var sdf_string)" world_name="$(var world_name)" entity_name="$(for-var name)" />
+      </ros_gz_payload_bridge>
+
+      <!-- TODO: sdf bridge handler -->
+      
+      <!-- TODO: does `ros_gz_bridge` have an equivalent to this now? -->
+      <!-- <node pkg="vrx_ros" exec="pose_tf_broadcaster" /> -->
+
+      <node pkg="robot_state_publisher" exec="robot_state_publisher">
+	<param name="use_sim_time"      type="bool" value="true"/>
+	<param name="frame_prefix"      type="str"  value="$(for-var name)/"/>
+	<param name="robot_description" type="str"  value="$(var urdf_string)"/>
+	<!-- <remap from="/joint_states" to="/$(for-var name)/joint_states"/> -->
+      </node>
+      
+      <!-- NOTE: Xi custom nodes -->
+      
+      <!-- <node pkg="virelex" exec="lidar_processor_node" -->
+      <!-- 	    args="$(for-var name)" /> -->
+
+      <!-- <node pkg="virelex" exec="state_processor_node" -->
+      <!-- 	    args="$(for-var name) $(for-var goal)" /> -->
+
+      <!-- <node pkg="virelex" exec="action_planner_node" -->
+      <!-- 	    args="$(var method) $(for-var name) $(var model_path) $(var agent_type)" /> -->
+
+    </group>
+  </for_each>
+
+  <!-- <timer period="5"> -->
+  <!--   <executable cmd="gz topic -l" name="gz-topics-list" output="both" /> -->
+  <!-- </timer> -->
+  
+  <!-- <node pkg="virelex" -->
+  <!-- 	exec="collision_detector_node" -->
+  <!-- 	args="$(var robot_names) $(var buoy_poses)" /> -->
+  
+</launch>

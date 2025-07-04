@@ -1,7 +1,7 @@
+from pathlib import Path
+
 import yaml
-
 from ament_index_python.packages import get_package_share_directory
-
 from gzilla.mappings.sensor_mapping import GzSensorMap
 
 
@@ -12,7 +12,7 @@ def sensors() -> GzSensorMap:
     sensor_map_yaml = gzilla_share_dir / 'config' / 'gz_sensor_mappings.yaml'
 
     with sensor_map_yaml.open() as f:
-        return GzSensorMap.model_validate(
+        return GzSensorMap.parse_obj(
             yaml.safe_load(f)
         )
 
@@ -24,7 +24,7 @@ def plugins() -> GzSensorMap:
     plugin_map_yaml = gzilla_share_dir / 'config' / 'gz_plugin_mappings.yaml'
 
     with plugin_map_yaml.open() as f:
-        return GzPluginMap.model_validate(
+        return GzPluginMap.parse_obj(
             yaml.safe_load(f)
         )
 
@@ -36,6 +36,6 @@ def vrx_plugins() -> GzSensorMap:
     plugin_map_yaml = gzilla_share_dir / 'config' / 'gz_vrx_plugin_mappings.yaml'
 
     with plugin_map_yaml.open() as f:
-        return GzPluginMap.model_validate(
+        return GzPluginMap.parse_obj(
             yaml.safe_load(f)
         )

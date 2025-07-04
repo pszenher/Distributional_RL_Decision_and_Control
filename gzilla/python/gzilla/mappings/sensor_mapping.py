@@ -1,57 +1,59 @@
 from typing import Dict, List, Optional, Self, Tuple
 
+from pydantic import PrivateAttr
+
 from gzilla.mappings.specs import GzTopicSpec, GzSensorSpec, GzSensorRuntimeConfig
 
-from pydantic import model_validator
+import gzilla.codegen.gz_sensor_map as gz_sensor_map
 
-import gzilla.codegen.gz_sensor_map_schema  as gz_sensor_map_schema
+class GzSensorMap(gz_sensor_map.GzSensorMap):
 
-class GzSensorMap(gz_sensor_map_schema.GzSensorMap):
+    sensors: list[GzSensorSpec]
 
-    sensors: List[GzSensorSpec]
+    _sensor_dict: dict[str,GzSensorSpec] = PrivateAttr(default_factory=dict)
+    _alias_dict:  dict[str,GzSensorSpec] = PrivateAttr(default_factory=dict)
 
-    _sensor_dict: Dict[str,GzSensorSpec]
-    _alias_dict: Dict[str,GzSensorSpec]
-
-    @model_validator(mode='after')
-    def check_sensors_unique(self) -> Self:
+    def __init__(self, **data):
+        super().__init__(**data)
+        self._sensor_dict = self._generate_sensor_dict(self.sensors)
+        self._alias_dict =  self._generate_alias_dict(self.sensors)
+        self._check_sensors_aliases_disjoint()
+    
+    @staticmethod
+    def _generate_sensor_dict(sensors: list[GzSensorSpec]) -> Self:
         sensor_dict = dict()
         dups = {
-            s.sensor for s in self.sensors
+            s.sensor for s in sensors
             if s.sensor in sensor_dict
             or sensor_dict.update({s.sensor: s})
         }
-        self._sensor_dict = sensor_dict
         if dups:
             raise ValueError(
                 f"Duplicate sensor names found in sensor map: '{dups}'"
             )
-        return self
+        return sensor_dict
 
-    @model_validator(mode='after')
-    def check_aliases_unique(self) -> Self:
+    @staticmethod
+    def _generate_alias_dict(sensors: list[GzSensorSpec]) -> Self:
         alias_dict = dict()
         dups = {
             alias
-            for s in self.sensors
+            for s in sensors
             for alias in s.aliases
             if alias in alias_dict
             or alias_dict.update({alias: s})
         }
-        self._alias_dict = alias_dict
         if dups:
             raise ValueError(
                 f"Duplicate alias names found in sensor map: '{dups}'"
             )
-        return self
+        return alias_dict
 
-    @model_validator(mode='after')
-    def check_sensors_aliases_disjoint(self) -> Self:
+    def _check_sensors_aliases_disjoint(self) -> None:
         if self._sensor_dict.keys() & self._alias_dict.keys():
             raise ValueError(
                 f"Sensor type cannot have both definition and alias: '{dups}'"
             )
-        return self
 
     def lookup_sensor(self, gz_sensor: str) -> Optional[GzSensorSpec]:
         return self._sensor_dict.get(gz_sensor)

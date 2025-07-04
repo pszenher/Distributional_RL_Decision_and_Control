@@ -37,12 +37,13 @@ then
 	mount -t tmpfs tmpfs /tmp
 	python -m "venv" "/tmp/venv"
 	source "/tmp/venv/bin/activate"
-	pip install "${codegen_pkg}"
+	pip install "${codegen_pkg}" --require-virtualenv --disable-pip-version-check \
+	    | sed 's/^/[INFO]: (pip): /'
     fi
 fi
 
 echo "[INFO]: ${0}: Generating with ${codegen_pkg} version $(${codegen_bin} --version)"
-echo "[INFO]: ${0}: Executing: '${codegen_bin}'"
+echo "[INFO]: ${0}: Executing: '$(which ${codegen_bin})'"
 
 ${codegen_bin} \
     --input-file-type "jsonschema" \

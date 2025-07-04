@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 from pydantic.dataclasses import dataclass
 import sdformat14 as sdf
 
-import sdflib.util
+import gzilla.sdflib.util
 
 @dataclass
 class SdfSensorConfig:
@@ -26,68 +26,13 @@ class SdfLink(sdf.Link):
     def sensors(self) -> Iterator[SdfSensor]:
         for sensor_idx in range(self.sensor_count()):
             yield SdfSensor(self.sensor_by_index( sensor_idx ))
-    
-class SdfModel(sdf.Model):
-    def links(self) -> Iterator[SdfLink]:
-        for link_idx in range(self.link_count()):
-            yield SdfLink(self.link_by_index( link_idx ))
-    def sensors(self) -> Iterator[ Tuple[SdfLink,SdfSensor] ]:
-        for link in self.links():
-            for sensor in link.sensors():
-                yield (link, sensor)
-    def sensor_configs(self) -> Iterator[SdfSensorConfig]:
-        for (link,sensor) in self.sensors():
-            yield SdfSensorConfig(
-                model_name  = self.name(),
-                link_name   = link.name(),
-                sensor_name = sensor.name(),
-                sensor_type = sensor.type_str(),
-                topic       = sensor.topic(),
-            )
-    @staticmethod
-    def from_sdf_string(sdf_string: str) -> Self:
-        root = SdfRoot.from_sdf_string(
-            sdf_string
-        )
-
-        match (entity := root.entity()):
-            case sdflib.SdfModel():
-                return entity
-            case _:
-                raise ValueError(
-                    f'Provided SDF string does not contain a root-anchored <model> entity;  found:  {entity}'
-                )
-
-
-class SdfWorld(sdf.World):
-    def models(self) -> Iterator[SdfModel]:
-        for model_idx in range(self.model_count()):
-            yield SdfModel(self.model_by_index( model_idx ))
-
-    @staticmethod
-    def from_sdf_string(self) -> Self:
-        root = SdfRoot.from_sdf_string(
-            sdf_string
-        )
-
-        match list(root.worlds()):
-            case [world]:
-                return world
-            case []:
-                raise ValueError(
-                    f'Provided SDF string does not contain any <world> entities, expected exactly 1'
-                )
-            case [*worlds]:
-                raise ValueError(
-                    f'Provided SDF string contains {len(worlds)} <world> entities, expected exactly 1'
-                )
 
 class SdfRoot(sdf.Root):
     
     def __init__(self) -> Self:
         sdf.Root.__init__(self)
 
-    def entity(self) -> Union[ SdfModel, sdf.Light, None ]:
+    def entity(self) -> Union[ 'SdfModel', sdf.Light, None ]:
         if (model := self.model()):
             return SdfModel(model)
         if (light := self.light()):
@@ -100,23 +45,23 @@ class SdfRoot(sdf.Root):
         # 
         return None
 
-    def worlds(self) -> Iterator[ SdfWorld ]:
+    def worlds(self) -> Iterator[ 'SdfWorld' ]:
         for world_idx in range(self.world_count()):
             yield SdfWorld(
                 self.world_by_index( world_idx )
             )
 
-    def world_models(self) -> Iterator[ Tuple[SdfWorld,SdfModel] ]:
+    def world_models(self) -> Iterator[ Tuple['SdfWorld','SdfModel'] ]:
         for world in self.worlds():
             for model in world.models():
                 yield (world, model)
 
-    def world_links(self) -> Iterator[ Tuple[SdfWorld,SdfModel,SdfLink] ]:
+    def world_links(self) -> Iterator[ Tuple['SdfWorld','SdfModel','SdfLink'] ]:
         for (world,model) in self.world_models():
             for link in model.links():
                 yield (world,model,link)
 
-    def world_sensors(self) -> Iterator[ Tuple[SdfWorld,SdfModel,SdfLink,SdfSensor] ]:
+    def world_sensors(self) -> Iterator[ Tuple['SdfWorld','SdfModel','SdfLink',SdfSensor] ]:
         for (world,model) in self.world_models():
             for (link,sensor) in model.sensors():
                 yield (world,model,link,sensor)
@@ -132,23 +77,25 @@ class SdfRoot(sdf.Root):
                 'world_plugins': list(map(sdf.Plugin.filename,world.plugins())),
             }
 
-    @staticmethod
+    @classmethod
     def from_sdf_file(
+            cls,
             sdf_filename: str,
             parser_config: Optional[sdf.ParserConfig] = None,
-    ) -> SdfRoot:
+    ) -> Self:
         with Path( sdf_filename ).open() as f:
             sdf_string = f.read()
-        return SdfRoot.parse_sdf_string(
+        return cls.parse_sdf_string(
             sdf_string,
             parser_config
         )
 
-    @staticmethod
+    @classmethod
     def from_sdf_string(
-        sdf_string: str,
-        parser_config: Optional[SdfParserConfig] = None,
-    ) -> SdfRoot:
+            cls,
+            sdf_string: str,
+            parser_config: Optional['SdfParserConfig'] = None,
+    ) -> Self:
         if not parser_config:
             parser_config = SdfParserConfig()
 
@@ -183,8 +130,80 @@ class SdfRoot(sdf.Root):
                 f'Unknown child element of SDF;  not <model>, <world>, or <light>'
             )
 
+class SdfModel(sdf.Model):
 
+    def links(self) -> Iterator[SdfLink]:
+        for link_idx in range(self.link_count()):
+            yield SdfLink(self.link_by_index( link_idx ))
+    def sensors(self) -> Iterator[ Tuple[SdfLink,SdfSensor] ]:
+        for link in self.links():
+            for sensor in link.sensors():
+                yield (link, sensor)
+    def sensor_configs(self) -> Iterator[SdfSensorConfig]:
+        for (link,sensor) in self.sensors():
+            yield SdfSensorConfig(
+                model_name  = self.name(),
+                link_name   = link.name(),
+                sensor_name = sensor.name(),
+                sensor_type = sensor.type_str(),
+                topic       = sensor.topic(),
+            )
 
+    @classmethod
+    def from_sdf_root(
+            cls,
+            root: SdfRoot
+    ) -> Self:
+        match (entity := root.entity()):
+            case gzilla.sdflib.SdfModel():
+                return entity
+            case _:
+                raise ValueError(
+                    f'Provided SDFRoot does not contain a root-anchored <model> entity;  found:  {entity}'
+                )
+
+    @classmethod
+    def from_sdf_string(
+            cls,
+            sdf_string: str,
+            parser_config: Optional[sdf.ParserConfig] = None,
+    ) -> Self:
+        root = SdfRoot.from_sdf_string( sdf_string, parser_config )
+        return cls.from_sdf_root( root )
+
+    @classmethod
+    def from_sdf_file(
+            cls,
+            sdf_filename: str,
+            parser_config: Optional[sdf.ParserConfig] = None,
+    ) -> Self:
+        root = SdfRoot.from_sdf_file( sdf_filename, parser_config )
+        return cls.from_sdf_root( root )
+        
+class SdfWorld(sdf.World):
+    def models(self) -> Iterator[SdfModel]:
+        for model_idx in range(self.model_count()):
+            yield SdfModel(self.model_by_index( model_idx ))
+
+    @staticmethod
+    def from_sdf_string(self) -> Self:
+        root = SdfRoot.from_sdf_string(
+            sdf_string
+        )
+
+        match list(root.worlds()):
+            case [world]:
+                return world
+            case []:
+                raise ValueError(
+                    f'Provided SDF string does not contain any <world> entities, expected exactly 1'
+                )
+            case [*worlds]:
+                raise ValueError(
+                    f'Provided SDF string contains {len(worlds)} <world> entities, expected exactly 1'
+                )
+
+            
 class SdfParserConfig(sdf.ParserConfig):
     def __init__(self) -> Self:
         sdf.ParserConfig.__init__(self)
@@ -193,7 +212,7 @@ class SdfParserConfig(sdf.ParserConfig):
     def local_uri_path(path_string: str) -> str:
         # TODO: should probably drop this method entirely, call the
         #       util func directly inline
-        return sdflib.util.find_gz_resource()
+        return gzilla.sdflib.util.find_gz_resource( path_string )
         
     @staticmethod
     def fuel_uri_path(netloc: str, path: str) -> str:

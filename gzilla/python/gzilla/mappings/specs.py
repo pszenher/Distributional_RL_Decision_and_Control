@@ -79,15 +79,12 @@ class GzTopic:
 
 class GzTopicNameSpec(gz_topic_spec_schema.GzTopicNameSpec):
 
-    def final_msg_topic(
+    def final_msg_topic_name(
             self,
             runtime_config: GzSensorRuntimeConfig,
             sdf_values: Mapping[str, str],
-    ) -> GzTopic:
-        return GzTopic(
-            name=self.final_name(runtime_config, sdf_values),
-            spec=self,
-        )
+    ) -> str:
+        return self.final_name(runtime_config, sdf_values)
     
     def final_name(
             self,
@@ -96,7 +93,7 @@ class GzTopicNameSpec(gz_topic_spec_schema.GzTopicNameSpec):
     ) -> str:
         if (explicit_topic_name := sdf_values.get(self.override)):
             return explicit_topic_name + self.suffix
-        return default_name(runtime_config)
+        return self.default_name(runtime_config)
         
     def default_name(
             self,
@@ -130,7 +127,10 @@ class GzTopicSpec(gz_topic_spec_schema.GzTopicSpec):
             runtime_config: GzSensorRuntimeConfig,
             sdf_values: Mapping[str, str],
     ) -> GzTopic:
-        return self.topic.final_msg_topic(runtime_config, sdf_values)
+        return GzTopic(
+            name = self.topic.final_msg_topic_name(runtime_config, sdf_values),
+            spec = self,
+        )
     
     def final_name(
             self,

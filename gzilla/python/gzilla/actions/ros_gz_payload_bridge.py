@@ -268,11 +268,11 @@ class RosGzPayloadBridge(launch.Action):
                 optional  = True,
             )
 
-            entity_name_param = child.get_attr(
-                name      = 'entity_name',
-                data_type = str,
-                optional  = False,
-            )
+            # entity_name_param = child.get_attr(
+            #     name      = 'entity_name',
+            #     data_type = str,
+            #     optional  = False,
+            # )
 
             match [
                 param for param in (

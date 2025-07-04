@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import json
 from dataclasses import dataclass
 from typing import Any, Self
 
@@ -14,31 +15,45 @@ class EpisodeData:
 
     def goal_poses(
             self, center_x: float, center_y: float,
+    ) -> dict[str,float]:
+        return [
+            { 'goal.x': goal_x_raw - self.TEST_ENV_CENTER[0] + center_x,
+              'goal.y': goal_y_raw - self.TEST_ENV_CENTER[1] + center_y, }
+            for (goal_x_raw, goal_y_raw)
+            in self.data["robots"]["goal"]
+        ]
+
+    def goal_poses_str(
+            self, center_x: float, center_y: float,
     ) -> str:
-        goal_poses = []
-        for (goal_x_raw, goal_y_raw) in self.data["robots"]["goal"]:
-            goal_x = goal_x_raw - self.TEST_ENV_CENTER[0] + center_x
-            goal_y = goal_y_raw - self.TEST_ENV_CENTER[1] + center_y
-
-            goal_poses.append(
-                f'{goal_x},{goal_y}'
-            )
-
-        return ';'.join(goal_poses)
+        return ';'.join(
+            [
+                f'{d["goal.x"]},{d["goal.y"]}'
+                for d in self.goal_poses(center_x, center_y)
+            ]
+        )
 
     def init_poses(
             self, center_x: float, center_y: float,
-    ) -> str:
-        init_poses = []
-        for (init_x_raw, init_y_raw), init_theta in zip(self.data["robots"]["start"], self.data["robots"]["init_theta"]):
-            init_x = init_x_raw - self.TEST_ENV_CENTER[0] + center_x
-            init_y = init_y_raw - self.TEST_ENV_CENTER[1] + center_y
+    ) -> dict[str,float]:
+        return [
+            { 'init.x': init_x_raw - self.TEST_ENV_CENTER[0] + center_x,
+              'init.y': init_y_raw - self.TEST_ENV_CENTER[1] + center_y,
+              'init.theta': init_theta,                                  }
+            for (init_x_raw, init_y_raw), init_theta
+            in zip(self.data["robots"]["start"],
+                   self.data["robots"]["init_theta"])
+        ]
 
-            init_poses.append(
-                f'{init_x},{init_y},{init_theta}'
-            )
-                              
-        return ';'.join(init_poses)
+    def init_poses_str(
+            self, center_x: float, center_y: float,
+    ) -> str:
+        return ';'.join(
+            [
+                f'{d["init.x"]},{d["init.y"]},{d["init.theta"]}'
+                for d in self.init_poses(center_x, center_y)
+            ]
+        )
 
     @classmethod
     def from_params(
@@ -68,7 +83,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         'request_type',
-        choices=['init_poses','goal_poses'],
+        choices=['init_poses','goal_poses','json'],
     )
         
     parser.add_argument(
@@ -116,6 +131,20 @@ if __name__ == "__main__":
 
     match args.request_type:
         case 'init_poses':
-            print(episode_data.init_poses(args.center_x, args.center_y))
+            print(episode_data.init_poses_str(args.center_x, args.center_y))
         case 'goal_poses':
-            print(episode_data.goal_poses(args.center_x, args.center_y))
+            print(episode_data.goal_poses_str(args.center_x, args.center_y))
+        case 'json':
+            print(
+                ';'.join(
+                    [
+                        json.dumps( name | init | goal )
+                        for name,init,goal
+                        in zip(
+                            [ {'name': f'robot{idx}'} for idx in range(args.num_robots) ],
+                            episode_data.init_poses(args.center_x, args.center_y),
+                            episode_data.goal_poses(args.center_x, args.center_y),
+                        )
+                    ]
+                )
+            )

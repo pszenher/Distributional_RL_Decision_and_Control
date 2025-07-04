@@ -6,31 +6,33 @@
 
   <!-- Optional launch arguments -->
   <arg name="seed"       default="0" description="Random seed used for randomly initializing vehicle poses"/>
-  <arg name="world_name" default="sydney_regatta"
+  
+  <arg name="world_name" default="sydney_regatta_minimal"
        description="String name of Gazebo world, as present on the &lt;world&gt; attribute of the loaded SDF data" />
+  <arg name="world_sdf_file" default="$(var world_name).sdf"
+	 description="String SDF filename containing the world to be spawned in the Gazebo simulation" />
 
-  <!-- Generated launch arguments -->
-  <arg name="init_poses"
+  <!-- Set target urdf.xacro file -->
+  <!--
+      TODO: generalize this into the robot configuration...
+  -->
+  <arg name="urdf_xacro_file" default="$(find-pkg-share virelex)/urdf/wamv_gazebo.urdf.xacro"/>
+
+  <!-- Randomly generate robot configuration parameters -->
+  <arg name="robot_configs"
        default="$(command '$(exec-in-pkg experiment_setup virelex)
 		--num-robots $(var num_robots)
 		--seed $(var seed)
-		init_poses' fail)"
-       description="2D initial pose of spawned experiment vehicles, encoded as a semicolon-delimitted list x,y,theta triples"/>
-  <arg name="goal_poses"
-       default="$(command '$(exec-in-pkg experiment_setup virelex)
-		--num-robots $(var num_robots)
-		--seed $(var seed)
-		goal_poses' fail)"
-       description="2D goal pose of spawned experiment vehicles, encoded as a semicolon-delimitted list of x,y pairs"/>
-
+		json' fail)"
+       description="Robot configuration parameters, encoded as a semicolon-delimitted list of json objects"/>
 
   <!-- Experiment action planner arguments -->
-  <arg name="method" default="RL" description="Method to used for action planner">
+  <arg name="method" default="RL" description="Method to be used for action planner">
     <choice value="RL"/>
     <choice value="MPC"/>
     <choice value="APF"/>
   </arg>
-  <arg name="agent_type" default="AC-IQN" description="RL agent type used (only applied when method=='RL'">
+  <arg name="agent_type" default="AC-IQN" description="RL agent type used (only applied when method=='RL')">
     <!-- Continuous-control agents -->
     <choice value="AC-IQN"/>
     <choice value="DDPG"/>
@@ -41,7 +43,8 @@
     <choice value="Rainbow"/>
   </arg>
   <!-- TODO: properly associate the default trained models with `agent_type` parameter above -->
-  <arg name="model_path" default="$(find-pkg-share virelex)/trained/traced_AC_IQN_model.pt"/>
+  <arg name="model_path" default="$(find-pkg-share virelex)/trained/traced_AC_IQN_model.pt"
+       description="libtorch trained model file for use with selected agent_type (only applied when method =='RL')"/>
 
   <!-- Experiment manager node;  handles unpause/pause on collision/timeout/completion condition -->
   <node pkg="virelex" exec="experiment_manager">
@@ -49,15 +52,72 @@
     <param name="world_name" value="$(var world_name)" />
   </node>
 
-  <!-- Main VRX competition launch file -->
-  <include file="$(find-pkg-share virelex)/launch/competition.launch.py">
-    <arg name="init_poses" value="$(var init_poses)" />
-    <arg name="goals"      value="$(var goal_poses)" />
+  <!-- Startup simulation-global bridges -->
+  <ros_gz_bridge bridge_name="world_control_bridge">
+    <topic ros_topic_name="/clock"
+	   gz_topic_name="/clock"
+           ros_type_name="rosgraph_msgs/msg/Clock"
+	   gz_type_name="gz.msgs.Clock"
+	   direction="GZ_TO_ROS" />
+    <service service_name="/world/$(var world_name)/control"
+             ros_type_name="ros_gz_interfaces/srv/ControlWorld"
+             gz_req_type_name="gz.msgs.WorldControl"
+	     gz_rep_type_name="gz.msgs.Boolean" />
+  </ros_gz_bridge>
 
-    <arg name="method"     value="$(var method)"    />
-    <arg name="agent_type" value="$(var agent_type)"/>
-    <arg name="model_path" value="$(var model_path)"/>
+  <!-- For each robot configuration (generated from experiment_setup) -->
+  <for_each values="$(var robot_configs)">
+    <group>
+      <push_ros_namespace namespace="$(for-var name)"/>
 
-    <arg name="world" value="$(var world_name)"/>
-  </include>
+      <!-- Convert *.urdf.xacro ~~> *.urdf ~~>  *.sdf -->
+      <let name="urdf_string"
+	   value="$(command 'xacro $(var urdf_xacro_file) namespace:=$(for-var name) vrx_sensors_enabled:=true thruster_config:=H' fail)"/>
+      <set_env name="urdf_string" value="$(var urdf_string)" />
+      <let name="sdf_string" value="$(command 'urdf2sdf -e urdf_string' warn)"/>
+
+      <!-- Spawn SDF vehicle platform according to config -->
+      <node pkg="ros_gz_sim" exec="create">
+	<param name="string" type="str" value="$(var sdf_string)"/>
+	<param name="name" value="$(for-var name)"/>
+	<param name="allow_renaming" value="false"/>
+	
+	<param name="x" value="$(for-var init.x)"/>
+	<param name="y" value="$(for-var init.y)"/>
+	<param name="z" value="$(for-var init.z 0.0)"/>
+
+	<param name="R" value="$(for-var init.roll 0.0)"/>
+	<param name="P" value="$(for-var init.pitch 0.0)"/>
+	<param name="Y" value="$(for-var init.theta 0.0)"/>
+      </node>
+
+      <!-- Configure bridges for sensors attached to model sdf -->
+      <ros_gz_payload_bridge world_name="$(var world_name)" model_name="$(for-var name)">
+	<sdf string="$(var sdf_string)" world_name="$(var world_name)" />
+      </ros_gz_payload_bridge>
+
+      <!-- Run RL action planner nodes -->
+      <!--
+	  TODO:  remap subscribed topics according to new VRX spec
+      -->
+      <node pkg="virelex" exec="action_planner_node"
+	    args="$(var method) $(for-var name) $(var model_path '') $(var agent_type '')" />
+      <node pkg="virelex" exec="lidar_processor_node"
+	    args="$(for-var name)" />
+      <node pkg="virelex" exec="state_processor_node"
+	    args="$(for-var name) $(for-var goal.x),$(for-var goal.y)" />
+      
+    </group>
+  </for_each>
+
+  <!-- Run gazebo server, starting in paused state -->
+  <executable cmd="gz sim -s $(var world_sdf_file)"
+	      name="gazebo-server"
+	      output="both" />
+
+  <!-- Run gazebo gui -->
+  <executable cmd="gz sim -g"
+	      name="gazebo-gui"
+	      output="both" />
+
 </launch>

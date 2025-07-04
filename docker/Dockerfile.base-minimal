@@ -1,50 +1,26 @@
-FROM ros:jazzy
+FROM ros:jazzy AS ros-jazzy-base
 
 RUN echo 'APT::Install-Recommends "false";' > "/etc/apt/apt.conf.d/90-docker-no-recommends" \
     && \
     echo 'APT::Install-Suggests "false";'   > "/etc/apt/apt.conf.d/90-docker-no-suggests"
 
-COPY .package_xml_cache /ws/src/
+FROM ros-jazzy-base AS ros-jazzy-packagexml
 
-RUN --mount=type=cache,target=/var/cache/apt \
+COPY docker/collect_package_xml_aux.bash /tmp/collect_package_xml_aux.bash
+
+RUN --mount=type=bind,src=.,dst=/ws/src,relabel=shared,ro \
+    /tmp/collect_package_xml_aux.bash /ws/src /tmp/package_xml_cache
+
+FROM ros-jazzy-base AS builder
+
+
+RUN --mount=type=bind,from=ros-jazzy-packagexml,src=/tmp/package_xml_cache,dst=/ws/src \
     . /opt/ros/${ROS_DISTRO}/setup.sh \
     && apt update \
     && rosdep install -r \
       --from-paths /ws/src/ \
       --ignore-src \
       --rosdistro ${ROS_DISTRO} -y
-
-RUN rm -r /ws/src
-
-# Set up repo to install Gazebo
-RUN curl -s https://packages.osrfoundation.org/gazebo.gpg -o /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null
-
-# NOTE: we don't actually want osrf's Gazebo package, the
-#       `ros-jazzy-ros-gz` one will do just fine; the problem is that
-#       the `sdformat_vendor` package used to bring the sdformat
-#       library into ROS decided to disable the `pybind11` flag in the
-#       build config:
-#
-#           https://github.com/gazebo-release/sdformat_vendor/commit/ab45af8e28da9df96e6f4b451269e42fd1cdffa1
-#
-#       Stock VRX relies on python bindings to SDFormat in the
-#       `vrx_gz` package when determining which bridges to launch as a
-#       function of SDF file plugin elements:
-# 
-#         - vrx_gz/model.py
-#         - vrx_gz/payload_bridges.py
-#
-#       If we swap this for a better `ros_gz_bridge` configuration
-#       setup, we might be able to drop the dep; for now, however, it
-#       stays....
-# 
-RUN --mount=type=cache,target=/var/cache/apt \
-    apt update \
-    && apt install -y --no-install-recommends \
-       python3-sdformat14 \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt clean -qq
 
 COPY . /ws/src/
 
@@ -60,12 +36,12 @@ COPY . /ws/src/
 #        w/o graphics, it might be worth letting Gazebo fetch the
 #        assets for us that way.  
 # 
-RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
-    xmllint --xpath "//include/uri/text()" "/ws/src/virelex/worlds/sydney_regatta.sdf" \
-    | grep http \
-    | sort \
-    | uniq \
-    | xargs -t -n1 gz fuel download --url
+# RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
+#     xmllint --xpath "//include/uri/text()" "/ws/src/virelex/worlds/sydney_regatta.sdf" \
+#     | grep http \
+#     | sort \
+#     | uniq \
+#     | xargs -t -n1 gz fuel download --url
 
 # Build the project
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
@@ -73,7 +49,3 @@ RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
     && colcon build --symlink-install --merge-install
 
 RUN echo "source /ws/install/setup.bash" >> ~/.bashrc
-
-RUN echo "#!/bin/bash" >> /sim.sh && \
-    echo "python3 /ws/install/lib/python3.12/site-packages/virelex/run_vrx_experiments.py" >> /sim.sh && \
-    chmod +x /sim.sh

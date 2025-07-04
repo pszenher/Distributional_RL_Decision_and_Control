@@ -167,7 +167,10 @@ def launch(context, *args, **kwargs):
             launch_arguments={'gz_args': ' '.join(
                 (['-r'] if not gz_paused else []) +
                 (['-s'] if headless      else []) +
+                # ['-v4'] +
+                # ['--physics-engine', 'gz-physics-bullet-plugin'] +
                 [extra_gz_args] +
+                # Set bullet physics engine (must be done here, SDF `<physics type="...">` is ignored)
                 [f'{world_name}.sdf']
             )}.items())
     )

@@ -143,6 +143,12 @@
       name="gz::sim::systems::NavSat">
     </plugin>
 
+    <!-- ParticleEmitter is broken: https://github.com/gazebosim/gz-rendering/issues/902 -->
+    <!-- <include> -->
+    <!--   <pose>-485.0 240.0 0.2 0 0 0</pose> -->
+    <!--   <uri>fog_generator</uri> -->
+    <!-- </include> -->
+
     <scene>
       <sky></sky>
       <grid>false</grid>

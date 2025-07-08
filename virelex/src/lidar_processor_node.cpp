@@ -25,14 +25,14 @@ public:
     LidarProcessorNode(const std::string& robot_name) : Node("lidar_processor_node_" + robot_name) {
         // Subscribe to the LiDAR PointCloud2 topic
         lidar_subscriber_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-            "/"+robot_name+"/sensors/lidars/lidar_wamv_sensor/points", 10, std::bind(&LidarProcessorNode::lidarCallback, this, std::placeholders::_1));
+            "scan/points", 10, std::bind(&LidarProcessorNode::lidarCallback, this, std::placeholders::_1));
 
         // Publish the filtered PointCloud2 and clusters information
         processed_lidar_publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>(
-            "/"+robot_name+"/sensors/lidars/lidar_wamv_sensor/processed_points", 10);
+            "scan/processed_points", 10);
 
         clusters_publisher_ = this->create_publisher<virelex_msgs::msg::PointCloudCluster>(
-            "/"+robot_name+"/sensors/lidars/lidar_wamv_sensor/clusters", 10);
+            "scan/clusters", 10);
 
         // Compute horizontal and vertical angle interval between beams
         h_angle_interval = (max_horizontal_angle-min_horizontal_angle)/num_samples;

@@ -44,9 +44,9 @@ class StateProcessorNode : public rclcpp::Node {
 public:
     StateProcessorNode(const std::string& robot_name, const std::string& robot_goal) : Node("state_processor_node_" + robot_name) {
         odometry_subscriber_ = std::make_shared<message_filters::Subscriber<nav_msgs::msg::Odometry>>(
-            this, "/"+robot_name+"/sensors/position/ground_truth_odometry");
+            this, "odometry");
         lidar_subscriber_ = std::make_shared<message_filters::Subscriber<virelex_msgs::msg::PointCloudCluster>>(
-            this, "/"+robot_name+"/sensors/lidars/lidar_wamv_sensor/clusters");
+            this, "scan/clusters");
 
         // Synchronize Odometry and LiDAR messages based on timestamps
         time_sync_ = std::make_shared<message_filters::TimeSynchronizer<nav_msgs::msg::Odometry, virelex_msgs::msg::PointCloudCluster>>(*odometry_subscriber_, *lidar_subscriber_, 10);
@@ -56,7 +56,7 @@ public:
         // timestamp_publisher_ = this->create_publisher<std_msgs::msg::String>("/"+robot_name+"/sync_timestamp", 10);
 
         // State publisher
-        state_publisher_ = this->create_publisher<virelex_msgs::msg::State>("/"+robot_name+"/robot_state", 10);
+        state_publisher_ = this->create_publisher<virelex_msgs::msg::State>("robot_state", 10);
 
         // if(robot_name == "wamv1") print_latency = true;
         // else print_latency = false;

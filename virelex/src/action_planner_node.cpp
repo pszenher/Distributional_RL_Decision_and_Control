@@ -21,11 +21,11 @@ public:
         
         // Subscribe to the robot state topic
         state_subscriber_ = this->create_subscription<virelex_msgs::msg::State>(
-            "/"+robot_name+"/robot_state", 10, std::bind(&ActionPlannerNode::actionPlanningCallback, this, std::placeholders::_1));
+            "robot_state", 10, std::bind(&ActionPlannerNode::actionPlanningCallback, this, std::placeholders::_1));
 
         // Subscribe to the unpause signal topic
         unpause_signal_subscriber_ = this->create_subscription<std_msgs::msg::Empty>(
-            "/"+robot_name+"/unpause_signal", 10, std::bind(&ActionPlannerNode::unpauseCallback, this, std::placeholders::_1));
+            "/experiment_unpause_signal", 10, std::bind(&ActionPlannerNode::unpauseCallback, this, std::placeholders::_1));
 
         // Publish action commands at a given frequency
         publish_freqency = 20; // Hz
@@ -100,6 +100,11 @@ protected:
     void publishRobotInfo() {
       if(!unpaused) {
 	RCLCPP_DEBUG_THROTTLE(this->get_logger(), *this->get_clock(), 1000, "publishRobotInfo awaiting unpause");
+	return;
+      }
+      if (!last_state_msg) {
+	RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+			     "hit publishRobotInfo with uninitialized `last_state_msg`; spinning...");
 	return;
       }
         // RCLCPP_WARN(this->get_logger(), "publishRobotInfo hit!");

@@ -64,10 +64,11 @@ class ExperimentManager(rclpy.node.Node):
                 'world_name is a required parameter, received:  '
                 f"'{self.world_name}'"
             )
-        
+
+        # FIXME: parameterize this properly;  need list of robot names, not `num_robots`...
         self.robot_info = {
-            f'wamv{idx}': []
-            for idx in range(1, self.num_robots+1)
+            f'robot{idx}': []
+            for idx in range(self.num_robots)
         }
         
         self.create_subscription(
@@ -85,25 +86,21 @@ class ExperimentManager(rclpy.node.Node):
                 qos_profile = 10
             )
 
-        self.unpause_signal_publishers = [
-            self.create_publisher(
-                msg_type    = std_msgs.msg.Empty, 
-                topic       = f'/{robot_name}/unpause_signal',
-                qos_profile = 10
-            )
-            for robot_name in self.robot_info
-        ]
+        self.unpause_signal_publisher = self.create_publisher(
+            msg_type    = std_msgs.msg.Empty, 
+            topic       = '/experiment_unpause_signal',
+            qos_profile = 10
+        )
 
-        # FIXME: this should probably tear itself down after the first
-        #        invocation (better-yet, we shouldn't need to time
-        #        this wait at all; TODO: use gazebo comms to wait on
-        #        simulator init...)
-        self.create_timer(
-            timer_period_sec = 20,
-            callback = lambda: [
-                pub.publish( std_msgs.msg.Empty() )
-                for pub in self.unpause_signal_publishers
-            ]
+        # Immediately publish the unpause signal; there's no need to
+        # set a timer for this as long as we're launched with
+        # `use_sim_time` set to true
+        # 
+        # TODO: refactor the need for this entirely out of the
+        #       `action_planner_node`
+        # 
+        self.unpause_signal_publisher.publish(
+            std_msgs.msg.Empty()
         )
 
         self.world_control = self.create_client(

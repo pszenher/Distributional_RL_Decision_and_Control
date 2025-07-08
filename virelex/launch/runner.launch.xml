@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
 
+  <!-- Set `use_sim_time` rosparam for every node in this context -->
+  <set_parameter name="use_sim_time" value="true" />
+  <set_ros_log_dir new_log_dir="$(launch_log_dir)"/>
+
   <!-- Required launch arguements -->
   <arg name="num_robots" description="Number of robots spawned and used in the experiment"/>
 
@@ -92,16 +96,31 @@
       </node>
 
       <!-- Configure bridges for sensors attached to model sdf -->
-      <ros_gz_payload_bridge world_name="$(var world_name)" model_name="$(for-var name)">
-	<sdf string="$(var sdf_string)" world_name="$(var world_name)" />
+      <ros_gz_payload_bridge world_name="$(var world_name)">
+	<sdf string="$(var sdf_string)" entity_name="$(for-var name)" />
       </ros_gz_payload_bridge>
+
+      <!-- Manual invocation of bridge for thrusters, as the gz topic naming scheme is a nightmare -->
+      <ros_gz_bridge bridge_name="truster_control_bridge">
+	<topic ros_topic_name="thrusters/left/thrust"
+	       gz_topic_name="$(for-var name)/thrusters/left/thrust"
+               ros_type_name="std_msgs/msg/Float64"
+	       gz_type_name="gz.msgs.Double"
+	       direction="ROS_TO_GZ" />
+	<topic ros_topic_name="thrusters/right/thrust"
+	       gz_topic_name="$(for-var name)/thrusters/right/thrust"
+               ros_type_name="std_msgs/msg/Float64"
+	       gz_type_name="gz.msgs.Double"
+	       direction="ROS_TO_GZ" />
+      </ros_gz_bridge>
 
       <!-- Run RL action planner nodes -->
       <!--
 	  TODO:  remap subscribed topics according to new VRX spec
       -->
       <node pkg="virelex" exec="action_planner_node"
-	    args="$(var method) $(for-var name) $(var model_path '') $(var agent_type '')" />
+	    args="$(var method) $(for-var name) $(var model_path '') $(var agent_type '')"
+	    ros_args="--log-level info --log-level action_planner_node:=debug"/>
       <node pkg="virelex" exec="lidar_processor_node"
 	    args="$(for-var name)" />
       <node pkg="virelex" exec="state_processor_node"
@@ -111,13 +130,23 @@
   </for_each>
 
   <!-- Run gazebo server, starting in paused state -->
-  <executable cmd="gz sim -s $(var world_sdf_file)"
-	      name="gazebo-server"
-	      output="both" />
+  <node pkg="gzilla" exec="gzserver">
+    <param name="world_sdf_file" value="$(var world_sdf_file)"/>
+  </node>
 
   <!-- Run gazebo gui -->
-  <executable cmd="gz sim -g"
-	      name="gazebo-gui"
-	      output="both" />
+  <executable
+      cmd="gz sim -g"
+      name="gazebo-gui"
+      output="both" />
+
+  
+  <!-- <node pkg="gzilla" exec="gzgui"> -->
+  <!--   <param name="world_name" value="$(var world_name)"/> -->
+  <!-- </node> -->
+  
+  <!-- <executable cmd="gz sim -s $(var world_sdf_file)" -->
+  <!-- 	      name="gazebo-server" -->
+  <!-- 	      output="both" /> -->
 
 </launch>

@@ -7,7 +7,7 @@ set -o errexit \
 shopt -s globstar
 
 script_dir="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-repo_dir="$( realpath "${script_dir}/.." )"
+repo_dir="$( realpath "${script_dir}/../.." )"
 pxml_dir="${repo_dir}/.package_xml_cache"
 
 echo "Collecting package.xml files" 1>&2

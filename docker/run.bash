@@ -29,7 +29,7 @@ ${oci_tool} \
     -v "${xorg_socket_dir}:/tmp/.X11-unix:ro" \
     -v "${repo_dir}:/ws/src:ro" \
     \
-    "local/virelex:latest"
+    "localhost/virelex:latest"
 
 # NOTE: For inter-container and host ROS2 integration
     # --network="host" \

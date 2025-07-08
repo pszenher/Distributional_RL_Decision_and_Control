@@ -11,7 +11,7 @@ oci_tool="podman"
 
 containerfile="${repo_dir}/docker/Dockerfile.base-minimal"
 
-image_name="local/virelex"
+image_name="localhost/virelex"
 image_tag="latest"
 
 # Cache `package.xml` files for image bulild

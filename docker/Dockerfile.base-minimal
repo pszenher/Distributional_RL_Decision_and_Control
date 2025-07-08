@@ -1,51 +1,56 @@
-FROM ros:jazzy AS ros-jazzy-base
+ARG builder_base_stage
+ARG builder_stage
+FROM ros:jazzy AS base
+COPY docker/overrides/. /
 
-RUN echo 'APT::Install-Recommends "false";' > "/etc/apt/apt.conf.d/90-docker-no-recommends" \
-    && \
-    echo 'APT::Install-Suggests "false";'   > "/etc/apt/apt.conf.d/90-docker-no-suggests"
-
-FROM ros-jazzy-base AS ros-jazzy-packagexml
-
-COPY docker/collect_package_xml_aux.bash /tmp/collect_package_xml_aux.bash
-
-RUN --mount=type=bind,src=.,dst=/ws/src,relabel=shared,ro \
-    /tmp/collect_package_xml_aux.bash /ws/src /tmp/package_xml_cache
-
-FROM ros-jazzy-base AS builder
-
-
-RUN --mount=type=bind,from=ros-jazzy-packagexml,src=/tmp/package_xml_cache,dst=/ws/src \
+FROM base AS base-preinstalled-deps
+ARG package_xml_image
+RUN --mount=type=cache,from=${package_xml_image},dst=/ws/src \
+    --mount=type=cache,dst=/var/lib/apt/lists,sharing=locked \
+    --mount=type=cache,dst=/var/cache/apt,sharing=locked \
     . /opt/ros/${ROS_DISTRO}/setup.sh \
+    && rm -f "/etc/apt/apt.conf.d/docker-clean" \
     && apt update \
-    && rosdep install -r \
-      --from-paths /ws/src/ \
-      --ignore-src \
-      --rosdistro ${ROS_DISTRO} -y
+    && rosdep install \
+      --from-paths "/ws/src" \
+      --ignore-packages-from-source \
+      --rosdistro "${ROS_DISTRO}" \
+      --default-yes
 
-COPY . /ws/src/
+FROM ${builder_base_stage:-"base"} AS builder
+COPY . /ws/src/usv-autonomy
+RUN --mount=type=cache,dst=/var/lib/apt/lists,sharing=locked \
+    --mount=type=cache,dst=/var/cache/apt,sharing=locked \
+    . /opt/ros/${ROS_DISTRO}/setup.sh \
+    && rm -f "/etc/apt/apt.conf.d/docker-clean" \
+    && apt update \
+    && rosdep install \
+      --from-paths "/ws/src" \
+      --ignore-packages-from-source \
+      --rosdistro "${ROS_DISTRO}" \
+      --default-yes
 
-# Prefetch Gazebo fuel resources into cache
-# 
-# FIXME: this is a blind xpath query to grab `//include/uri` nodes
-#        with "http" in them somewhere; there could still be fuel
-#        resources that need to be fetched from imports found in the
-#        SDF trees of locally-imported models.
-#
-#        The best way to account for this isn't clear; if gz sim has a
-#        set of flags that do only the startup phase for a world file
-#        w/o graphics, it might be worth letting Gazebo fetch the
-#        assets for us that way.  
-# 
-# RUN . /opt/ros/${ROS_DISTRO}/setup.sh && \
-#     xmllint --xpath "//include/uri/text()" "/ws/src/virelex/worlds/sydney_regatta.sdf" \
-#     | grep http \
-#     | sort \
-#     | uniq \
-#     | xargs -t -n1 gz fuel download --url
+FROM builder AS builder-with-cache
+ARG build_cache_image
+RUN --mount=type=cache,from=${build_cache_image},dst=/mnt,ro \
+    cp -r /mnt/ws/build /ws/build
+    # TODO: if /ws/build already exists we have a problem here...
 
+FROM ${builder_stage:-"builder"} AS built-workspace
 # Build the project
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
     && cd /ws \
     && colcon build --symlink-install --merge-install
 
-RUN echo "source /ws/install/setup.bash" >> ~/.bashrc
+# Add workspace setup.bash to sourcing chain in entrypoint script
+RUN sed '/^###ANCHOR$/i source /ws/install/setup.bash' /ros_entrypoint.sh
+
+FROM ros:jazzy AS workspace-build-cache
+RUN --mount=type=cache,from=built-workspace,dst=/mnt,ro \
+    mkdir -p /ws && \
+    cp -r /mnt/ws/build /ws/build
+
+FROM scratch AS package-xml-cache
+ADD docker/package-xml-cache.tar /
+
+FROM built-workspace AS final

@@ -197,8 +197,6 @@ class ForEach(Action):
         if not iteration_dicts:
             self._logger.warning('no input values: will not iterate')
 
-        self._logger.warning(f'HIT: iterdicts: {iteration_dicts}')
-
         entities = []
         for iteration_dict in iteration_dicts:
             self._logger.debug(f'iteration: {iteration_dict}')

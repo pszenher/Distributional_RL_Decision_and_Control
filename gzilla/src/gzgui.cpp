@@ -79,13 +79,13 @@ public:
 
     app->SetDefaultConfigPath(defaultConfig);
 
-    auto mainWin = app->findChild<gz::gui::MainWindow *>();
-    RCLCPP_INFO(this->get_logger(), "queried window");
+    // auto mainWin = app->findChild<gz::gui::MainWindow *>();
+    // RCLCPP_INFO(this->get_logger(), "queried window");
 
     
-    auto win = mainWin->QuickWindow();
-    win->setProperty("title", "Gazebo Sim GUI");
-    RCLCPP_INFO(this->get_logger(), "set quickwindow title");
+    // auto win = mainWin->QuickWindow();
+    // win->setProperty("title", "Gazebo Sim GUI");
+    // RCLCPP_INFO(this->get_logger(), "set quickwindow title");
 
     if (!app->CreateMainWindow()) {
       RCLCPP_ERROR(this->get_logger(),
@@ -114,8 +114,16 @@ public:
   
   void GzGui::OnStart()
   {
-    auto verbosity = this->declare_parameter("verbosity", 1);
-    
+    auto world_name = this->declare_parameter("world_name", "");
+    auto verbosity  = this->declare_parameter("verbosity", 1);
+
+    if (world_name.empty()) {
+      RCLCPP_ERROR( this->get_logger(),
+		    "Must specify 'world_name'" );
+      rclcpp::shutdown();
+      return;
+    }
+
     if (verbosity < 1 || 5 < verbosity) {
       auto input_verbosity = verbosity;
       verbosity = std::clamp(verbosity, 1l, 5l);
@@ -124,11 +132,10 @@ public:
 		  input_verbosity,
 		  verbosity);
     }
-    
     gz::common::Console::SetVerbosity(verbosity);
-    
+
     // TODO: generalize default world name
-    auto app = GzGui::CreateGui( "default" );
+    auto app = GzGui::CreateGui( world_name );
     
     if (!app) {
       RCLCPP_ERROR(this->get_logger(),

@@ -31,3 +31,15 @@ plugins:
         base: '/vrx/debug/wind/direction'
         override: 'topic_wind_direction'
       direction: 'pub'
+
+- plugin: 'libSurface'
+  topics:
+    - msg_type: 'gz.msgs.Param'
+      topic:
+        prefix_type: 'absolute'
+        base: '/wavefield/parameters'
+        override: './wavefield/topic'
+      direction: 'sub'
+# TODO: fill out
+- plugin: 'libSimpleHydrodynamics'
+  topics: []

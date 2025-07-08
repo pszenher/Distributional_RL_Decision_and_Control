@@ -3,7 +3,7 @@ from pathlib import Path
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from gzilla.mappings.sensor_mapping import GzSensorMap
-
+from gzilla.mappings.plugin_mapping import GzPluginMap
 
 def sensors() -> GzSensorMap:
     gzilla_share_dir = Path(

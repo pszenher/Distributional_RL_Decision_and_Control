@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Self, Tuple
 
 from pydantic import PrivateAttr
 
-from gzilla.mappings.specs import GzTopicSpec, GzSensorSpec, GzSensorRuntimeConfig
+from gzilla.mappings.specs import GzTopicSpec, GzSensorSpec
 
 import gzilla.codegen.gz_sensor_map as gz_sensor_map
 
@@ -20,7 +20,7 @@ class GzSensorMap(gz_sensor_map.GzSensorMap):
         self._check_sensors_aliases_disjoint()
     
     @staticmethod
-    def _generate_sensor_dict(sensors: list[GzSensorSpec]) -> Self:
+    def _generate_sensor_dict(sensors: list[GzSensorSpec]) -> dict[str,GzSensorSpec]:
         sensor_dict = dict()
         dups = {
             s.sensor for s in sensors
@@ -34,7 +34,7 @@ class GzSensorMap(gz_sensor_map.GzSensorMap):
         return sensor_dict
 
     @staticmethod
-    def _generate_alias_dict(sensors: list[GzSensorSpec]) -> Self:
+    def _generate_alias_dict(sensors: list[GzSensorSpec]) -> dict[str,GzSensorSpec]:
         alias_dict = dict()
         dups = {
             alias

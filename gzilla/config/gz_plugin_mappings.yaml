@@ -26,19 +26,16 @@ plugins:
 
 - plugin: 'gz-sim-odometry-publisher-system'
   topics:
-    # FIXME: using python f-string template style variable for
-    #        {model_name} here; need to figure out better way to
-    #        represent this...
     - msg_type: 'gz.msgs.Odometry'
       topic:
-        prefix_type: 'absolute'
-        base: '/model/{model_name}/odometry'
+        prefix_type: 'model_scoped'
+        base: '/odometry'
         override: 'odom_topic'
       direction: 'pub'
     - msg_type: 'gz.msgs.OdometryWithCovariance'
       topic:
-        prefix_type: 'absolute'
-        base: '/model/{model_name}/odometry_with_covariance'
+        prefix_type: 'model_scoped'
+        base: '/odometry_with_covariance'
         override: 'odom_covariance_topic'
       direction: 'pub'
 
@@ -46,23 +43,89 @@ plugins:
   topics:
     - msg_type: 'gz.msgs.String'
       topic:
-        prefix_type: 'absolute'
-        base: '/model/{child_model}/detachable_joint/state'
+        prefix_type: 'custom'
+        # TODO: implement in schema
+        # prefix_components:
+        #   - '/model/'
+        #   - xpath: './child_model/text()'
+        base: '/detachable_joint/state'
         override: 'output_topic'
       direction: 'pub'
     - msg_type: 'gz.msgs.Empty'
       topic:
-        prefix_type: 'absolute'
-        base: '/model/{model_name}/detachable_joint/detach'
+        prefix_type: 'model_scoped'
+        base: '/detachable_joint/detach'
         override: 'detach_topic'
       direction: 'sub'
     - msg_type: 'gz.msgs.Empty'
       topic:
-        prefix_type: 'absolute'
-        base: '/model/{model_name}/detachable_joint/attach'
+        prefix_type: 'model_scoped'
+        base: '/detachable_joint/attach'
         override: 'attach_topic'
       direction: 'sub'
 
+# TODO: fill out
+- plugin: 'gz-sim-thruster-system'
+  topics: []
+    # # FIXME: the topic name determination for this plugin is a
+    # #        nightmare; it's probably not worth updating the schema to capture
+    # #        high-level conditionals, so lets see if we can split the
+    # #        difference somehow
+    # # 
+    # - msg_type: 'gz.msgs.Double'
+    #   topic:
+    #     # NOTE: alright, informal breakdown of final topic name here:
+    #     #
+    #     # let namespace := <namespace> if set, else '{modelName}'
+    #     # 
+    #     # - if topic := <topic> is set:
+    #     #     case mode == ForceCmd:
+    #     #       sub: '{namespace}/{topic}'
+    #     #       pub: '{namespace}/{topic}/ang_vel'
+    #     #       sub: '{namespace}/{topic}/enable_deadband'
+    #     #     case mode == AngVelCmd:
+    #     #       sub: '{namespace}/{topic}'
+    #     #       pub: '{namespace}/{topic}/force'
+    #     #       sub: '{namespace}/{topic}/enable_deadband'
+    #     #   else:
+    #     #     case mode == ForceCmd:
+    #     #       sub: '/model/{namespace}/joint/{jointName}/cmd_thrust'
+    #     #       pub: '/model/{namespace}/joint/{jointName}/ang_vel'
+    #     #       sub: '/model/{namespace}/joint/{jointName}/enable_deadband'
+    #     #     case mode == AngVelCmd:
+    #     #       sub: '/model/{namespace}/joint/{jointName}/cmd_vel'
+    #     #       pub: '/model/{namespace}/joint/{jointName}/force'
+    #     #       sub: '/model/{namespace}/joint/{jointName}/enable_deadband'
+    #     #     
+    #     prefix_type: 'model_joint_scoped'
+    #     base: '/cmd_thrust'
+    #     override: 'topic'
+    #   direction: 'sub'
+    # - msg_type: 'gz.msgs.Double'
+    #   topic:
+    #     prefix_type: 'model_joint_scoped'
+    #     base: '/cmd_thrust'
+    #     suffix: '/ang_vel'
+    #   direction: 'pub'
+    # - msg_type: 'gz.msgs.Boolean'
+    #   topic:
+    #     prefix_type: 'model_joint_scoped'
+    #     base: '/cmd_thrust'
+    #     suffix: '/enable_deadband'
+    #   direction: 'sub'
+
+- plugin: 'gz-sim-joint-position-controller-system'
+  topics: []
+    # - msg_type: 'gz.msgs.Double'
+    #   topic:
+    #     # FIXME: this is also hell; has special joint_index param
+    #     #        which makes the ros type invalid, which is extra
+    #     #        cool...
+    #     prefix_type: 'model_joint_index_scoped'
+    #     base: '/cmd_pos'
+    #     override: 'topic'
+    #   direction: 'sub'
+        
 # # TODO: implement
 # - plugin: 'gz-sim-joint-controller-system'
 

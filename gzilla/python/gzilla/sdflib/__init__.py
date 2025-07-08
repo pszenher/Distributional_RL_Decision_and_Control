@@ -1,8 +1,10 @@
 import os
 from enum import Enum
-from typing import Iterator, Generator, Optional, Self, Tuple, Union
+from typing import Union, Iterator, Optional, Self, TypeAlias, ForwardRef, Any, TypeVar, Generic
+from types import UnionType
 from pathlib import Path, PurePath
 from urllib.parse import urlparse
+from itertools import repeat
 import xml.etree.ElementTree as ElementTree
 
 from pydantic import BaseModel, Field
@@ -11,30 +13,71 @@ import sdformat14 as sdf
 
 import gzilla.sdflib.util
 
-@dataclass
-class SdfSensorConfig:
-    model_name: str
-    link_name: str
-    sensor_name: str
-    sensor_type: str
-    topic: str
+# @dataclass
+# class SdfSensorConfig:
+#     model_name: str
+#     link_or_joint_name: str
+#     sensor_name: str
+#     sensor_type: str
+#     topic: str
 
-class SdfSensor(sdf.Sensor):
-    pass
+SdfWorldCarrier  : TypeAlias = 'SdfRoot'
+SdfModelCarrier  : TypeAlias = Union[ 'SdfRoot', 'SdfWorld', 'SdfModel' ]
+SdfSensorCarrier : TypeAlias = Union[ 'SdfLink', 'SdfJoint' ]
+
+# TODO: implement wrappers for the rest of these
+SdfPluginCarrier : TypeAlias = Union[
+    'SdfWorld',
+    'SdfModel',
+    'SdfSensor',
+    sdf.Visual,
+    sdf.Projector,
+    sdf.Gui
+]
+
+# SdfT = TypeVar('SdfT')
+SdfCarrierT = TypeVar('SdfCarrierT')
+
+class SdfWrapper(Generic[SdfCarrierT]):
+
+    _xml_tag: str
     
-class SdfLink(sdf.Link):
-    def sensors(self) -> Iterator[SdfSensor]:
-        for sensor_idx in range(self.sensor_count()):
-            yield SdfSensor(self.sensor_by_index( sensor_idx ))
-
-class SdfRoot(sdf.Root):
+    def __init__(
+            self,
+            sdf_raw: Any | None = None,
+            parent: SdfCarrierT | None = None
+    ) -> Self:
+        super().__init__(sdf_raw) if sdf_raw else super().__init__()
+        self._parent = parent
     
-    def __init__(self) -> Self:
-        sdf.Root.__init__(self)
+    @property
+    def parent(self) -> SdfCarrierT | None:
+        return self._parent
 
-    def entity(self) -> Union[ 'SdfModel', sdf.Light, None ]:
+    @property
+    def xml_tag(self) -> str:
+        return self._xml_tag
+
+    # TODO: is there a way to type this that's valid?
+    def ancestors(self) -> Iterator[ 'SdfWrapper[Any]' ]:
+        cur_node = self
+        while cur_node := cur_node.parent:
+            yield cur_node
+
+    def ancestors_up_to(self, sdf_type: type | UnionType) -> Iterator[ 'SdfWrapper[Any]' ]:
+        cur_node = self
+        while cur_node := cur_node.parent:
+            if isinstance(cur_node, sdf_type):
+                break
+            yield cur_node
+
+class SdfRoot(SdfWrapper[None], sdf.Root):
+
+    _xml_tag: str = 'sdf'
+    
+    def entity(self) -> ForwardRef('SdfModel') | sdf.Light | None:
         if (model := self.model()):
-            return SdfModel(model)
+            return SdfModel(model, self)
         if (light := self.light()):
             return light
         # XXX: this is where an actor check would go, if the pybind
@@ -51,31 +94,40 @@ class SdfRoot(sdf.Root):
                 self.world_by_index( world_idx )
             )
 
-    def world_models(self) -> Iterator[ Tuple['SdfWorld','SdfModel'] ]:
+    def world_models(self) -> Iterator[ tuple['SdfWorld','SdfModel'] ]:
         for world in self.worlds():
             for model in world.models():
                 yield (world, model)
 
-    def world_links(self) -> Iterator[ Tuple['SdfWorld','SdfModel','SdfLink'] ]:
+    def world_links(self) -> Iterator[ tuple['SdfWorld','SdfModel','SdfLink'] ]:
         for (world,model) in self.world_models():
             for link in model.links():
                 yield (world,model,link)
 
-    def world_sensors(self) -> Iterator[ Tuple['SdfWorld','SdfModel','SdfLink',SdfSensor] ]:
+    def world_sensors(
+            self
+    ) -> Iterator[
+        tuple[
+            'SdfWorld',
+            'SdfModel',
+            ForwardRef('SdfLink')|ForwardRef('SdfJoint'),
+            'SdfSensor'
+        ]
+    ]:
         for (world,model) in self.world_models():
-            for (link,sensor) in model.sensors():
-                yield (world,model,link,sensor)
+            for (link_or_joint,sensor) in model.sensors():
+                yield (world,model,link_or_joint,sensor)
 
-    def link_configs(self):
-        for (world,model,link) in self.world_links():
-            # FIXME: this is not a data model;  add a real type or delete this
-            yield {
-                'world_name': world.name(),
-                'model_name': model.name(),
-                'link_name': link.name(),
-                'model_plugins': model.plugins(),
-                'world_plugins': list(map(sdf.Plugin.filename,world.plugins())),
-            }
+    # def link_configs(self):
+    #     for (world,model,link) in self.world_links():
+    #         # FIXME: this is not a data model;  add a real type or delete this
+    #         yield {
+    #             'world_name': world.name(),
+    #             'model_name': model.name(),
+    #             'link_name': link.name(),
+    #             'model_plugins': model.plugins(),
+    #             'world_plugins': list(map(sdf.Plugin.filename,world.plugins())),
+    #         }
 
     @classmethod
     def from_sdf_file(
@@ -85,7 +137,7 @@ class SdfRoot(sdf.Root):
     ) -> Self:
         with Path( sdf_filename ).open() as f:
             sdf_string = f.read()
-        return cls.parse_sdf_string(
+        return cls.from_sdf_string(
             sdf_string,
             parser_config
         )
@@ -113,41 +165,109 @@ class SdfRoot(sdf.Root):
         root.load_sdf_string( sdf_string, parser_config )
         return root
 
-        # Blindly try each top-level SDF child element getter, since
-        # the Python SDFormat api doesn't give us a better way to test this
-        if (model := root.model()):
-            return model
-        elif (world := root.world()):
-            raise NotImplementedError(
-                '<world> SDF file handling is not yet implemented...'
-            )
-        elif (light := root.light()):
-            raise NotImplementedError(
-                '<light> SDF file handling is not yet implemented...'
-            )
-        else:
-            raise ValueError(
-                f'Unknown child element of SDF;  not <model>, <world>, or <light>'
-            )
+class SdfPlugin(SdfWrapper[SdfPluginCarrier], sdf.Plugin):
 
-class SdfModel(sdf.Model):
+    _xml_tag: str = 'plugin'
+    
+    @property
+    def name(self) -> str:
+        return super().name()
+
+    @property
+    def filename(self) -> str:
+        return super().filename()
+
+    @property
+    def xml(self) -> str:
+        return self.__str__()
+
+class SdfSensor(SdfWrapper[SdfSensorCarrier], sdf.Sensor):
+    _xml_tag: str = 'sensor'
+
+    @property
+    def name(self) -> str:
+        return super().name()
+    
+    def plugins(self) -> Iterator[SdfPlugin]:
+        return map(SdfPlugin, super().plugins(), repeat(self))
+    
+class SdfJoint(SdfWrapper['SdfModel'], sdf.Joint):
+    _xml_tag: str = 'joint'
+    # def __init__(
+    #         self,
+    #         raw_joint: sdf.Joint,
+    #         parent: Optional['SdfModel'] = None,
+    # ) -> Self:
+    #     sdf.Joint.__init__(self, raw_joint)
+    #     self._parent = parent
+
+    @property
+    def parent(self) -> Optional['SdfModel']:
+        return self._parent
+        
+    def sensors(self) -> Iterator[SdfSensor]:
+        for sensor_idx in range(self.sensor_count()):
+            yield SdfSensor(self.sensor_by_index( sensor_idx ), self)
+
+class SdfLink(SdfWrapper['SdfModel'], sdf.Link):
+    _xml_tag: str = 'link'
+    # def __init__(
+    #         self,
+    #         raw_link: sdf.Link,
+    #         parent: Optional['SdfModel'] = None,
+    # ) -> Self:
+    #     sdf.Link.__init__(self, raw_link)
+    #     self._parent = parent
+
+    @property
+    def parent(self) -> Optional['SdfModel']:
+        return self._parent
+    
+    def sensors(self) -> Iterator[SdfSensor]:
+        for sensor_idx in range(self.sensor_count()):
+            yield SdfSensor(self.sensor_by_index( sensor_idx ), self)
+
+class SdfModel(SdfWrapper[SdfModelCarrier], sdf.Model):
+    _xml_tag: str = 'model'
+    # def __init__(
+    #         self,
+    #         raw_model: sdf.Model,
+    #         parent: SdfModelCarrier | None = None,
+    # ) -> Self:
+    #     sdf.Model.__init__(self, raw_model)
+    #     self._parent = parent
+
+    @property
+    def parent(self) -> SdfModelCarrier | None:
+        return self._parent
+
+    def plugins(self) -> Iterator[SdfPlugin]:
+        return map(SdfPlugin, super().plugins(), repeat(self))
 
     def links(self) -> Iterator[SdfLink]:
         for link_idx in range(self.link_count()):
             yield SdfLink(self.link_by_index( link_idx ))
-    def sensors(self) -> Iterator[ Tuple[SdfLink,SdfSensor] ]:
+    def joints(self) -> Iterator[SdfLink]:
+        for joint_idx in range(self.joint_count()):
+            yield SdfJoint(self.joint_by_index( joint_idx ))
+    def sensors(self) -> Iterator[ SdfSensor ]:
         for link in self.links():
             for sensor in link.sensors():
-                yield (link, sensor)
-    def sensor_configs(self) -> Iterator[SdfSensorConfig]:
-        for (link,sensor) in self.sensors():
-            yield SdfSensorConfig(
-                model_name  = self.name(),
-                link_name   = link.name(),
-                sensor_name = sensor.name(),
-                sensor_type = sensor.type_str(),
-                topic       = sensor.topic(),
-            )
+                yield sensor
+        for joint in self.joints():
+            for sensor in joint.sensors():
+                yield sensor
+
+    # def sensor_configs(self) -> Iterator[SdfSensorConfig]:
+    #     for (link_or_joint,sensor) in self.sensors():
+    #         yield SdfSensorConfig(
+    #             model_name  = self.name(),
+    #             # TODO: this is trash, refactor
+    #             link_or_joint_name = link_or_joint.name(),
+    #             sensor_name = sensor.name(),
+    #             sensor_type = sensor.type_str(),
+    #             topic       = sensor.topic(),
+    #         )
 
     @classmethod
     def from_sdf_root(
@@ -180,11 +300,27 @@ class SdfModel(sdf.Model):
         root = SdfRoot.from_sdf_file( sdf_filename, parser_config )
         return cls.from_sdf_root( root )
         
-class SdfWorld(sdf.World):
+class SdfWorld(SdfWrapper[SdfWorldCarrier], sdf.World):
+    _xml_tag: str = 'world'
+    # def __init__(
+    #         self,
+    #         raw_world: sdf.World,
+    #         parent: Optional[SdfWorldCarrier] = None,
+    # ) -> Self:
+    #     sdf.World.__init__(self, raw_world)
+    #     self._parent = parent
+
+    @property
+    def parent(self) -> Optional[SdfWorldCarrier]:
+        return self._parent
+
+    def plugins(self) -> Iterator[SdfPlugin]:
+        return map(SdfPlugin, super().plugins(), repeat(self))
+
     def models(self) -> Iterator[SdfModel]:
         for model_idx in range(self.model_count()):
-            yield SdfModel(self.model_by_index( model_idx ))
-
+            yield SdfModel(self.model_by_index( model_idx ), self)
+        
     @staticmethod
     def from_sdf_string(self) -> Self:
         root = SdfRoot.from_sdf_string(
@@ -202,7 +338,6 @@ class SdfWorld(sdf.World):
                 raise ValueError(
                     f'Provided SDF string contains {len(worlds)} <world> entities, expected exactly 1'
                 )
-
             
 class SdfParserConfig(sdf.ParserConfig):
     def __init__(self) -> Self:

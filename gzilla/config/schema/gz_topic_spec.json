@@ -28,7 +28,7 @@
       "properties": {
 	"prefix_type": {
 	  "description": "Type of gz topic prefix used, determining scoping of final topic name",
-	  "enum": ["scoped", "absolute"]
+	  "enum": ["scoped", "model_scoped", "absolute", "custom"]
 	},
 	"base": {
 	  "description": "Base topic name, possibly overwritten by the sensor <topic>",

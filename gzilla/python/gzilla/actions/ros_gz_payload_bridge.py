@@ -149,36 +149,72 @@ class RosGzBridgeParams:
                 '(runtime resolution from server not yet implemented)'
             )
 
-        # Fetch sensor sdf configuration parameters via parser
-        sensor_configs = model_sdf.sensor_configs()
-
+        # Setup relevant sensor/plugin/message mappings
+        # TODO: we shouldn't need to init these; make them global exports of their respective modules
         sensor_map  : GzSensorMap     = gzilla.mappings.data.sensors()
+        plugin_map  : GzPluginMap     = gzilla.mappings.data.plugins()
         message_map : GzRosMessageMap = gzilla.mappings.message_mapping.GzRosMessageMap()
 
+        # TODO: adding this here so we can resolve all names; should
+        #       eventually allow for hot-loading these with a child
+        #       element in config (sibling to current `sdf` elements)
+        # 
+        vrx_plugin_map  : GzPluginMap = gzilla.mappings.data.vrx_plugins()
+
+        # Fetch sensor sdf configuration parameters via parser
+        sensors = model_sdf.sensors()
+        # Fetch plugin sdf configuration parameters (the literal sdformat objects) via parser
+        plugins = model_sdf.plugins()
 
         topic_bridges: list[TopicBridgeConfig] = []
-        for sensor_conf in sensor_configs:
+        for sensor in sensors:
             
             # Look up sdf sensor type in sensor map; throw if it's not
             # recognized (which shouldn't be possible unless the SDF spec
             # and/or sdformat implementation changes)
-            # 
-            if not (sensor_spec := sensor_map.lookup( sensor_conf.sensor_type )):
+            #
+            sensor_type = sensor.type_str()
+            
+            if not (sensor_spec := sensor_map.lookup( sensor_type )):
                 raise ValueError(
-                    f"Unknown SDF sensor type encountered in input:  '{conf.sensor_type}'"
+                    f"Unknown SDF sensor type encountered in input:  '{sensor_type}'"
                 )
-            runtime_conf = gzilla.mappings.specs.GzSensorRuntimeConfig.from_sdf_and_spawner_configs(
-                sensor_conf,
-                spawner_conf
+            runtime_conf = gzilla.mappings.specs.GzRuntimeConfig(
+                world_name = spawner_conf.world_name,
+                model_name = spawner_conf.entity_name,
+                sdf = sensor,
             )
 
             topic_bridges.extend([
                 TopicBridgeConfig.from_topic_spec( topic, message_map )
-                for topic in sensor_spec.final_msg_topics(
-                        runtime_conf,
-                        {'topic': sensor_conf.topic} )
+                for topic in sensor_spec.final_msg_topics(runtime_conf)
             ])
 
+        for plugin in plugins:
+
+            
+            # Look up sdf plugin type in plugin map; throw if it's not
+            # recognized (this is expected, TODO: refactor)
+            # 
+            if (plugin_spec := plugin_map.lookup( plugin.filename )):
+                pass
+            elif (plugin_spec := vrx_plugin_map.lookup( plugin.filename )):
+                pass
+            else:
+                raise ValueError(
+                    f"Unknown SDF plugin type (filename) encountered in input:  '{plugin.filename}'"
+                )
+            runtime_conf = gzilla.mappings.specs.GzRuntimeConfig(
+                world_name = spawner_conf.world_name,
+                model_name = spawner_conf.entity_name,
+                sdf = plugin,
+            )
+                
+            topic_bridges.extend([
+                TopicBridgeConfig.from_topic_spec( topic, message_map )
+                for topic in plugin_spec.final_msg_topics(runtime_conf)
+            ])
+            
         bridge_dict = {
             f'payload_bridge_{idx}': bridge
             for idx,bridge in enumerate(topic_bridges)
@@ -216,7 +252,6 @@ class RosGzPayloadBridge(launch.Action):
             self,
             *,
             world_name: str,
-            model_name: str,
             sdf_inputs: list[ dict[str,Any] ],
             **kwargs,
     ):
@@ -224,7 +259,6 @@ class RosGzPayloadBridge(launch.Action):
         self._logger = launch.logging.get_logger(__name__)
 
         self._world_name = world_name
-        self._model_name = model_name
         self._sdf_inputs = sdf_inputs
 
     @classmethod
@@ -237,12 +271,6 @@ class RosGzPayloadBridge(launch.Action):
 
         world_name = entity.get_attr(
             name      = 'world_name',
-            data_type = str,
-            optional  = False,
-        )
-
-        model_name = entity.get_attr(
-            name      = 'model_name',
             data_type = str,
             optional  = False,
         )
@@ -268,17 +296,17 @@ class RosGzPayloadBridge(launch.Action):
                 optional  = True,
             )
 
-            # entity_name_param = child.get_attr(
-            #     name      = 'entity_name',
-            #     data_type = str,
-            #     optional  = False,
-            # )
+            entity_name_param = child.get_attr(
+                name      = 'entity_name',
+                data_type = str,
+                optional  = True,
+            )
 
             match [
-                param for param in (
+                (sdf_type, val) for (sdf_type, val) in (
                 ('filename', sdf_filename_param),
                 ('string', sdf_string_param)
-            ) if param[1]
+            ) if val
             ]:
                 case []:
                     raise AttributeError(
@@ -295,11 +323,10 @@ class RosGzPayloadBridge(launch.Action):
                     sdf_inputs.append({
                         'type': param,
                         'value': parser.parse_substitution(val),
-                        'entity_name': parser.parse_substitution(sdf_string_param)
+                        'entity_name': parser.parse_substitution(entity_name_param)
                     })
 
         kwargs['world_name'] = parser.parse_substitution(world_name)
-        kwargs['model_name'] = parser.parse_substitution(model_name)
         kwargs['sdf_inputs'] = sdf_inputs
 
         return cls, kwargs
@@ -324,8 +351,7 @@ class RosGzPayloadBridge(launch.Action):
         # FIXME: manually destructing lists of substitutions for now,
         #        should handle this properly, and check for ill-formed
         world_name = self._world_name[0].perform(context)
-        model_name = self._model_name[0].perform(context)
-        
+
         for sdf_input in self._sdf_inputs:
             match sdf_input:
                 case {'type': 'filename', 'value': [filename]}:
@@ -336,9 +362,19 @@ class RosGzPayloadBridge(launch.Action):
                     raise ValueError(
                         f"Unrecognized sdf_input value received:  '{sdf_input}'"
                     )
+
+            if (entity_params := sdf_input.get('entity_name')):
+                match entity_params:
+                    case [entity_param]:
+                        entity_name = entity_param.perform(context)
+                    case _:
+                        raise ValueError(
+                            f"Unrecognized entity_name param received:  '{entity_params}'"
+                        )
+                        
             spawner_conf = gzilla.mappings.specs.GzEntitySpawnerConfig(
                 world_name = world_name,
-                entity_name = model_name,
+                entity_name = entity_name,
             )
             params = params.merge( RosGzBridgeParams.from_sdf_model( sdf_model, spawner_conf ) )
             
@@ -378,7 +414,7 @@ class RosGzPayloadBridge(launch.Action):
         #     for key,value in bridge_conf.items()
         # }
 
-        pp(params.to_flattened_params())
+        # pp(params.to_flattened_params())
         
         
         # launch_descriptions = super().execute(context)

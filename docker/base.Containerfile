@@ -22,7 +22,30 @@ RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
     && colcon build --symlink-install
 
 # Add workspace setup.bash to sourcing chain in entrypoint script
-RUN echo 'source "/ws/install/setup.bash"' >> ~/.bashrc
+# RUN echo 'source "/ws/install/setup.bash"' >> ~/.bashrc
+RUN sed -i '/^###AFTER_ROS_DISTRO/i source "/ws/install/setup.bash" --' \
+    "/ros_entrypoint.sh" \
+    && \
+    sed -i '$ d' ~/.bashrc \
+    && \
+    echo 'source <(grep "^source" /ros_entrypoint.sh)' >> ~/.bashrc
+# TODO: this will yield a double-entry in both files for build-devel; refactor
+
+FROM built-workspace AS devel-workspace
+RUN --mount=type=cache,dst=/var/lib/apt/lists,sharing=locked \
+    --mount=type=cache,dst=/var/cache/apt,sharing=locked \
+       rm -f "/etc/apt/apt.conf.d/docker-clean" \
+    && mkdir -p ~/.local \
+    && ln -s /usr/local/bin ~/.local/bin \
+    && apt update \
+    && apt install -y pipx \
+    && pipx install python-lsp-server[all] \
+       --preinstall pylsp-mypy \
+       --preinstall python-lsp-ruff
+    # TODO: consider `pipx install --global` instead of symlink /usr/local/bin hack
+
+WORKDIR "/ws"
+
 
 FROM built-workspace AS test-workspace
 # Run colcon-recognized project tests
@@ -31,4 +54,3 @@ RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
     && colcon test
 
 FROM built-workspace AS final
-WORKDIR "/ws"

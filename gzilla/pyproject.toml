@@ -1,0 +1,12 @@
+# [tool.mypy]
+# warn_return_any = true
+# warn_unused_configs = true
+
+[tool.pylsp-mypy]
+enabled = true
+live_mode = true
+# strict = true
+
+[tool.ruff]
+lint.select = ["E", "F", "W", "C90", "UP", "B"]
+target-version = "py312"

@@ -4,8 +4,11 @@
 #       undeclared vars (AMENT_TRACE_SETUP_FILES)
 set -o errexit
 
-###ANCHOR
+###BEFORE_ROS_DISTRO
 
 # setup ros2 environment
 source "/opt/ros/${ROS_DISTRO}/setup.bash" --
+
+###AFTER_ROS_DISTRO
+
 exec "${@}"

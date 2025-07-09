@@ -4,7 +4,6 @@
   <name>gzilla</name>
   <version>0.1.0</version>
   <description>A bag of tools for interfacing simulations with ROS2</description>
-  <author email="pszenher@stevens.edu">Paul Szenher</author>
   <maintainer email="pszenher@stevens.edu">Paul Szenher</maintainer>
   <license>Apache-2.0</license>
 

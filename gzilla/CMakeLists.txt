@@ -8,6 +8,9 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(ament_cmake_vendor_package REQUIRED)
+find_package(ament_lint_auto REQUIRED)
+ament_lint_auto_find_test_dependencies()
+
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 

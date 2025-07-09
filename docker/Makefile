@@ -42,6 +42,7 @@ run: $(bootstrap_build)
 
 build-devel: $(bootstrap_build)
 	$(OCI) build \
+		--target "devel-workspace" \
 		--build-arg "base_image=$(build_image_tag)" \
 		--tag  "$(devel_image_tag)" \
 		--file "$(containerfile)" \

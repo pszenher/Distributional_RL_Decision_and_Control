@@ -1,6 +1,6 @@
 .PHONY: build build-devel run run-devel
 
-OCI="podman"
+OCI=podman
 
 image_namespace=localhost
 image_name=virelex
@@ -27,14 +27,6 @@ build:
 		--file "$(containerfile)" \
 		..
 
-build-devel: $(bootstrap_build)
-	@echo build_image_id $(build_image_id)
-	$(OCI) build \
-		--build-arg "base_image=$(build_image_tag)" \
-		--tag  "$(devel_image_tag)" \
-		--file "$(containerfile)" \
-		..
-
 run: $(bootstrap_build)
 	$(OCI) \
 	    run --rm --interactive --tty  \
@@ -44,20 +36,35 @@ run: $(bootstrap_build)
 	    --device "nvidia.com/gpu=all" \
 	    -e "DISPLAY" \
 	    -v "/tmp/.X11-unix:/tmp/.X11-unix:ro" \
-	    -v "..:/ws/src:ro" \
+	    -v "..:/ws/src/usv-autonomy:ro" \
 	    \
 	    $(build_image_tag)
+
+build-devel: $(bootstrap_build)
+	$(OCI) build \
+		--build-arg "base_image=$(build_image_tag)" \
+		--tag  "$(devel_image_tag)" \
+		--file "$(containerfile)" \
+		..
+
+test-devel: build-devel
+	$(OCI) build \
+		--target "test-workspace" \
+		--build-arg "base_image=$(build_image_tag)" \
+		--tag  "$(devel_image_tag)" \
+		--file "$(containerfile)" \
+		..
 
 run-devel: build-devel
 	$(OCI) \
 	    run --rm --interactive --tty  \
+	    --name "virelex" \
 	    \
 	    --security-opt "label=type:container_runtime_t" \
 	    \
 	    --device "nvidia.com/gpu=all" \
 	    -e "DISPLAY" \
 	    -v "/tmp/.X11-unix:/tmp/.X11-unix:ro" \
-	    -v "..:/ws/src:ro" \
+	    -v "..:/ws/src/usv-autonomy:rw" \
 	    \
 	    $(devel_image_tag)
-

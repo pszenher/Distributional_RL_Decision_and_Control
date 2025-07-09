@@ -19,9 +19,16 @@ FROM base-installed-deps AS built-workspace
 # Build the project
 RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
     && cd /ws \
-    && colcon build --symlink-install --merge-install
+    && colcon build --symlink-install
 
 # Add workspace setup.bash to sourcing chain in entrypoint script
 RUN echo 'source "/ws/install/setup.bash"' >> ~/.bashrc
 
+FROM built-workspace AS test-workspace
+# Run colcon-recognized project tests
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
+    && cd /ws \
+    && colcon test
+
 FROM built-workspace AS final
+WORKDIR "/ws"

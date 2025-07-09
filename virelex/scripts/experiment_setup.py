@@ -64,12 +64,12 @@ class EpisodeData:
             min_start_goal_distance: float
     ) -> Self:
         test_env = rfarl.envs.marinenav.MarineNavEnv3(
-            seed = args.seed
+            seed = seed
         )
-        test_env.num_robots = args.num_robots
-        test_env.num_cores = 0
-        test_env.num_obs   = 0
-        test_env.min_start_goal_dis = args.min_start_goal_distance
+        test_env.num_robots = num_robots
+        test_env.num_cores  = 0
+        test_env.num_obs    = 0
+        test_env.min_start_goal_dis = min_start_goal_distance
         test_env.reset()
 
         return cls( test_env.episode_data() )

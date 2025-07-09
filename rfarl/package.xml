@@ -11,6 +11,8 @@
   <maintainer email="pszenher@stevens.edu">Paul Szenher</maintainer>
   <license>MIT</license>
 
+  <test_depend>python3-pytest</test_depend>
+
   <export>
     <build_type>ament_python</build_type>
   </export>

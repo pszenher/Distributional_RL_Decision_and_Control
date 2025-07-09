@@ -23,6 +23,7 @@ setup(
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
     ],
     license='MIT',
+    tests_require=['pytest'],
     entry_points={
         'console_scripts': []
     },

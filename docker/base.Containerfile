@@ -41,7 +41,8 @@ RUN --mount=type=cache,dst=/var/lib/apt/lists,sharing=locked \
     && apt install -y pipx \
     && pipx install python-lsp-server[all] \
        --preinstall pylsp-mypy \
-       --preinstall python-lsp-ruff
+       --preinstall python-lsp-ruff \
+    && pipx install datamodel-code-generator
     # TODO: consider `pipx install --global` instead of symlink /usr/local/bin hack
 
 WORKDIR "/ws"

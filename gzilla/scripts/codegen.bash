@@ -52,14 +52,17 @@ ${codegen_bin} \
     --input "${schema_dir}" \
     --output "${codegen_dir}" \
     \
+    --disable-timestamp \
     --enable-version-header \
     \
     --use-title-as-name \
     --use-schema-description \
     \
+    --use-standard-collections \
+    --use-union-operator \
     --capitalize-enum-members \
     --enable-faux-immutability \
     --collapse-root-models \
     --use-exact-imports \
     \
-    --target-python-version "3.11"
+    --target-python-version "3.12"

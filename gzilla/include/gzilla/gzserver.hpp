@@ -13,10 +13,10 @@
 // limitations under the License.
 
 // NOTE: derived from `gzserver.hpp` in the `ros_gz_sim` package repo
-// 
+//
 // see:
 //   https://github.com/gazebosim/ros_gz/blob/bba6783a85955e2719a0d11468d9a8a79223b0a7/ros_gz_sim/include/ros_gz_sim/gzserver.hpp
-// 
+//
 
 #ifndef GZILLA__GZSERVER_HPP_
 #define GZILLA__GZSERVER_HPP_

@@ -5,8 +5,125 @@
 [tool.pylsp-mypy]
 enabled = true
 live_mode = true
-# strict = true
+strict = true
 
 [tool.ruff]
-lint.select = ["E", "F", "W", "C90", "UP", "B"]
+lint.select = [
+    # pycodestyle (error)
+    "E",
+    # pycodestyle (warning)
+    "W",
+    # pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # isort
+    "I",
+    # eradicate
+    "ERA",
+    # flake8-2020
+    "YTT",
+    # flake8-async
+    "ASYNC",
+    # flake8-bandit
+    "S",
+    # flake8-blind-except
+    "BLE",
+    # flake8-boolean-trap
+    "FBT",
+    # flake8-builtins
+    "A",
+    # # flake8-commas
+    # "COM",
+    # flake8-comprehensions
+    "C4",
+    # flake8-copyright
+    "CPY",
+    # flake8-datetimez
+    "DTZ",
+    # flake8-errmsg
+    "EM",
+    # flake8-executable
+    "EXE",
+    # # flake8-fixme
+    # "FIX",
+    # flake8-implicit-str-concat
+    "ISC",
+    # flake8-import-conventions
+    "ICN",
+    # flake8-logging
+    "LOG",
+    # flake8-logging-format
+    "G",
+    # flake8-no-pep420
+    "INP",
+    # flake8-pie
+    "PIE",
+    # flake8-print
+    "T20",
+    # flake8-pytest-style
+    "PT",
+    # flake8-quotes
+    "Q",
+    # flake8-raise
+    "RSE",
+    # flake8-return
+    "RET",
+    # flake8-self
+    "SLF",
+    # flake8-simplify
+    "SIM",
+    # flake8-slots
+    "SLOT",
+    # flake8-todos
+    "TD",
+    # flake8-type-checking
+    "TC",
+    # flake8-unused-arguments
+    "ARG",
+    # flake8-use-pathlib
+    "PTH",
+    # flynt
+    "FLY",
+    # mccabe
+    "C90",
+    # NumPy-specific rules
+    "NPY",
+    # pandas-vet
+    "PD",
+    # pep8-naming
+    "N",
+    # perflint
+    "PERF",
+    # pydoclint
+    "DOC",
+    # pydocstyle
+    "D",
+    # pygrep-hooks
+    "PGH",
+    # pylint
+    "PL",
+    # refurb
+    "FURB",
+    # ruff-specific rules
+    "RUF",
+    # tryceratops
+    "TRY",
+]
+
+lint.ignore = [
+    "TD001",
+    "TD003",
+    
+    # TODO: re-enable once we it stops being noise...
+    "D100", # docstring in public module
+    "D101", # docstring in public class
+    "D102", # docstring in public method
+    "D104", # docstring in public package
+    "D107", # docstring in __init__
+    ]
+
+task-tags = ["TODO"]
 target-version = "py312"

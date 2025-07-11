@@ -460,8 +460,6 @@ class SdfParserConfig(sdf.ParserConfig):
             case "https":
                 # Insert uri path mapping into sdf parser config
                 self.add_uri_path(uri_string, self.fuel_uri_path(uri.netloc, uri.path))
-            case "model":
-                pass
             case "model" | "file" | "":
                 # Re-append netloc to uri path if it is non-empty, handle as local path
                 self.add_uri_path(

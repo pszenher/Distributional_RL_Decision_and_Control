@@ -21,8 +21,7 @@
       "description": "Alternative sdf sensor type strings which map to this canonical sensor type",
       "type": "array",
       "items": { "type": "string" },
-      "default": [],
-      "uniqueItems": true
+      "default": []
     },
     "deprecated": {
       "description": "Boolean flag denoting deprecation status of the referenced sensor type",

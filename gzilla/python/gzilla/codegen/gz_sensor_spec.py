@@ -27,7 +27,6 @@ class GzSensorSpec(BaseModel):
     aliases: Sequence[str] | None = Field(
         [],
         description='Alternative sdf sensor type strings which map to this canonical sensor type',
-        unique_items=True,
     )
     deprecated: bool | None = Field(
         False,

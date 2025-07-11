@@ -48,8 +48,7 @@ RUN --mount=type=cache,dst=/var/lib/apt/lists,sharing=locked \
        clangd \
        \
        python3-pylsp \
-       python3-pylsp-mypy \
-       && pipx install datamodel-code-generator
+       python3-pylsp-mypy
 
 # TODO(pszenher): how to we ask pip to install `python-lsp-ruff`
 #     without trying (and failing) to upgrade other package versions

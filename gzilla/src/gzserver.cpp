@@ -18,7 +18,6 @@
 //   https://github.com/gazebosim/ros_gz/blob/bba6783a85955e2719a0d11468d9a8a79223b0a7/ros_gz_sim/src/gzserver.cpp
 //
 
-#include "gzilla/gzcommon.hpp"
 #include "gzilla/gzserver.hpp"
 
 #include <algorithm>
@@ -29,6 +28,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_components/register_node_macro.hpp>
 #include <thread>
+
+#include "gzilla/gzcommon.hpp"
 
 namespace gzilla
 {

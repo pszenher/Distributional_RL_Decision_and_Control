@@ -127,4 +127,4 @@ lint.ignore = [
     ]
 
 task-tags = ["TODO"]
-target-version = "py312"
+target-version = "py311"

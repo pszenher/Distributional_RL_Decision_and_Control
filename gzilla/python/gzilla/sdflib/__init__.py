@@ -5,7 +5,7 @@ from collections.abc import Iterator, Sequence
 from itertools import repeat
 from pathlib import Path, PurePath
 from types import UnionType
-from typing import Any, Protocol, Self
+from typing import Any, Generic, Protocol, Self, TypeAlias, TypeVar
 from urllib.parse import urlparse
 
 # This is a binary module, mypy can't see it without stubs
@@ -13,13 +13,13 @@ import sdformat14 as sdf  # type: ignore [import-not-found]
 
 import gzilla.sdflib.util
 
-type SdfWorldCarrier = "SdfRoot"
-type SdfModelCarrier = "SdfRoot" | "SdfWorld" | "SdfModel"
-type SdfSensorCarrier = "SdfLink" | "SdfJoint"
+SdfWorldCarrier: TypeAlias = "SdfRoot"
+SdfModelCarrier: TypeAlias = "SdfRoot | SdfWorld | SdfModel"
+SdfSensorCarrier: TypeAlias = "SdfLink | SdfJoint"
 
 # TODO(pszenher): implement wrappers for the rest of these
-SdfPluginCarrier : TypeAlias = (
-    "SdfWorld" | "SdfModel" | "SdfSensor" | sdf.Visual | sdf.Projector | sdf.Gui
+SdfPluginCarrier: TypeAlias = (
+    "SdfWorld | SdfModel | SdfSensor | sdf.Visual | sdf.Projector | sdf.Gui"
 )
 
 
@@ -40,7 +40,11 @@ class HasXmlParent(Protocol):
         """String content of the XML-tag which encloses this element type."""
         ...
 
-class SdfMixin[T: HasXmlParent | None]:
+
+T = TypeVar("T", bound=(HasXmlParent | None))
+
+
+class SdfMixin(Generic[T]):
     """Mixin class for SDF pybind object wrapper classes."""
 
     _xml_tag: str

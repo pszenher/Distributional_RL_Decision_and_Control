@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from pydantic import BaseModel, Extra, Field
 
 from .gz_topic_spec import GzTopicSpec
@@ -21,8 +23,8 @@ class GzSensorSpec(BaseModel):
     sensor: str = Field(
         ..., description='Value of `type` field in SDF sensor definition'
     )
-    topics: list[GzTopicSpec]
-    aliases: list[str] | None = Field(
+    topics: Sequence[GzTopicSpec]
+    aliases: Sequence[str] | None = Field(
         [],
         description='Alternative sdf sensor type strings which map to this canonical sensor type',
         unique_items=True,

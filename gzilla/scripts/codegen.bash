@@ -57,11 +57,13 @@ ${codegen_bin} \
     \
     --use-title-as-name \
     --use-schema-description \
+    --capitalize-enum-members \
     \
     --use-standard-collections \
+    --use-generic-container-types \
     --use-union-operator \
-    --capitalize-enum-members \
     --enable-faux-immutability \
+    \
     --collapse-root-models \
     --use-exact-imports \
     \

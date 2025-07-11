@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from pydantic import BaseModel
 
 from .gz_plugin_spec import GzPluginSpec
@@ -17,4 +19,4 @@ class GzPluginMap(BaseModel):
     class Config:
         allow_mutation = False
 
-    plugins: list[GzPluginSpec] | None = None
+    plugins: Sequence[GzPluginSpec] | None = None

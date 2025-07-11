@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from pydantic import BaseModel, Extra, Field
 
 from .gz_topic_spec import GzTopicSpec
@@ -18,7 +20,7 @@ class GzPluginSpec(BaseModel):
         extra = Extra.forbid
         allow_mutation = False
 
-    plugin: str | None = Field(
-        None, description='Value of `filename` field in SDF plugin definition'
+    plugin: str = Field(
+        ..., description='Value of `filename` field in SDF plugin definition'
     )
-    topics: list[GzTopicSpec]
+    topics: Sequence[GzTopicSpec]

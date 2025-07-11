@@ -4,6 +4,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from pydantic import BaseModel
 
 from .gz_sensor_spec import GzSensorSpec
@@ -17,4 +19,4 @@ class GzSensorMap(BaseModel):
     class Config:
         allow_mutation = False
 
-    sensors: list[GzSensorSpec]
+    sensors: Sequence[GzSensorSpec]

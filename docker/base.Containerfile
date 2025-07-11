@@ -32,18 +32,29 @@ RUN sed -i '/^###AFTER_ROS_DISTRO/i source "/ws/install/setup.bash" --' \
 # TODO: this will yield a double-entry in both files for build-devel; refactor
 
 FROM built-workspace AS devel-workspace
+
+RUN . /opt/ros/${ROS_DISTRO}/setup.sh \
+    && cd /ws \
+    && colcon build --symlink-install --cmake-args "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+
 RUN --mount=type=cache,dst=/var/lib/apt/lists,sharing=locked \
     --mount=type=cache,dst=/var/cache/apt,sharing=locked \
        rm -f "/etc/apt/apt.conf.d/docker-clean" \
-    && mkdir -p ~/.local \
-    && ln -s /usr/local/bin ~/.local/bin \
     && apt update \
-    && apt install -y pipx \
-    && pipx install python-lsp-server[all] \
-       --preinstall pylsp-mypy \
-       --preinstall python-lsp-ruff \
-    && pipx install datamodel-code-generator
-    # TODO: consider `pipx install --global` instead of symlink /usr/local/bin hack
+    && apt install -y \
+       python3-pip \
+       pipx \
+       \
+       clangd \
+       \
+       python3-pylsp \
+       python3-pylsp-mypy \
+       && pipx install datamodel-code-generator
+
+# TODO(pszenher): how to we ask pip to install `python-lsp-ruff`
+#     without trying (and failing) to upgrade other package versions
+#     (as some are installed via `apt`)
+RUN pip install --break-system-packages python-lsp-ruff "typing_extensions==4.10"
 
 WORKDIR "/ws"
 

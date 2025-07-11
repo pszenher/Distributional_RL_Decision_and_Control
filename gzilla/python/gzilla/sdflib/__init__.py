@@ -18,12 +18,12 @@ type SdfModelCarrier = "SdfRoot" | "SdfWorld" | "SdfModel"
 type SdfSensorCarrier = "SdfLink" | "SdfJoint"
 
 # TODO(pszenher): implement wrappers for the rest of these
-type SdfPluginCarrier = (
+SdfPluginCarrier : TypeAlias = (
     "SdfWorld" | "SdfModel" | "SdfSensor" | sdf.Visual | sdf.Projector | sdf.Gui
 )
 
 
-class HasParent(Protocol):
+class HasXmlParent(Protocol):
     """An object with some notion of having a single "parent".
 
     Enforces implementation of a `parent` property method by subclasses, which returns
@@ -31,12 +31,16 @@ class HasParent(Protocol):
     """
 
     @property
-    def parent(self) -> "HasParent | None":
+    def parent(self) -> "HasXmlParent | None":
         """The parent of the current object, or `None`."""
         ...
 
+    @property
+    def xml_tag(self) -> str:
+        """String content of the XML-tag which encloses this element type."""
+        ...
 
-class SdfMixin[T: HasParent | None]:
+class SdfMixin[T: HasXmlParent | None]:
     """Mixin class for SDF pybind object wrapper classes."""
 
     _xml_tag: str
@@ -47,7 +51,6 @@ class SdfMixin[T: HasParent | None]:
         Expects to be used immediately before a binary-module `sdf.*`
         type in the class inheritance chain, such that `super()`
         resolves to an `sdf.*`-family type.
-
         """
         super().__init__(*args)
         self._parent = parent
@@ -62,23 +65,23 @@ class SdfMixin[T: HasParent | None]:
         """String content of the XML-tag which encloses this element type."""
         return self._xml_tag
 
-    def ancestors(self) -> Iterator[HasParent]:
+    def ancestors(self) -> Iterator[HasXmlParent]:
         """Iterate over node ancestry, starting at current node parent.
 
         Yields only non-None ancestors;  returns upon encountering None-parent.
         """
-        cur_node: HasParent | None = self.parent
+        cur_node: HasXmlParent | None = self.parent
         while cur_node is not None:
             yield cur_node
             cur_node = cur_node.parent
 
-    def ancestors_up_to(self, sdf_type: type | UnionType) -> Iterator[HasParent]:
+    def ancestors_up_to(self, sdf_type: type | UnionType) -> Iterator[HasXmlParent]:
         """Iterate over node ancestry, starting at current node parent.
 
         Yields only non-None ancestors; returns upon encountering
         None-parent, or a parent contained in type `sdf_type`.
         """
-        cur_node: HasParent | None = self.parent
+        cur_node: HasXmlParent | None = self.parent
         while cur_node:
             if isinstance(cur_node, sdf_type):
                 break
@@ -453,6 +456,8 @@ class SdfParserConfig(sdf.ParserConfig):
             case "https":
                 # Insert uri path mapping into sdf parser config
                 self.add_uri_path(uri_string, self.fuel_uri_path(uri.netloc, uri.path))
+            case "model":
+                pass
             case "model" | "file" | "":
                 # Re-append netloc to uri path if it is non-empty, handle as local path
                 self.add_uri_path(

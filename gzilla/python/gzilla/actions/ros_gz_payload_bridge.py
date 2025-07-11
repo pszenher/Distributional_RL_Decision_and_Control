@@ -1,7 +1,7 @@
 """"""
 
 import dataclasses
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from itertools import chain
@@ -15,10 +15,9 @@ import gzilla.mappings.specs
 from gzilla import sdflib
 from gzilla.codegen.gz_topic_spec import Direction
 
-if TYPE_CHECKING:
-    from gzilla.mappings.message_mapping import GzRosMessageMap
-    from gzilla.mappings.plugin_mapping import GzPluginMap
-    from gzilla.mappings.sensor_mapping import GzSensorMap
+from gzilla.mappings.message_mapping import GzRosMessageMap
+from gzilla.mappings.plugin_mapping import GzPluginMap
+from gzilla.mappings.sensor_mapping import GzSensorMap
 
 
 # TODO(pszenher): just use enum.auto() calls for value-tagging these (consider StrEnum?)
@@ -74,7 +73,7 @@ class TopicBridgeConfig:
 
     @classmethod
     def from_topic_spec(
-        cls, topic: gzilla.mappings.specs.GzTopicSpec, message_map
+        cls, topic: gzilla.mappings.specs.GzTopic, message_map
     ) -> Self:
         return cls(
             ros_type_name=message_map.query_gz_string(topic.msg_type).ros2_string(),
@@ -104,7 +103,7 @@ class RosGzBridgeParams:
     bridges: Mapping[str, TopicBridgeConfig | ServiceBridgeConfig]
     """Mapping from elements in `bridge_names` to per-bridge parameter structures."""
 
-    bridge_names: list[str]
+    bridge_names: Sequence[str]
     """List of bridge names, to be used in dereferencing configuration parameters."""
 
     subscription_heartbeat: int = 1000
@@ -130,7 +129,7 @@ class RosGzBridgeParams:
         return dataclasses.replace(
             self,
             bridges=merged_bridge_dict,
-            bridge_names=merged_bridge_dict.keys(),
+            bridge_names=list(merged_bridge_dict.keys()),
         )
 
     def to_flattened_params(self) -> dict[str, Any]:
@@ -153,12 +152,19 @@ class RosGzBridgeParams:
             )
             raise ValueError(msg)
 
+        if not spawner_conf.entity_name:
+            msg = (
+                "Expected string name of SDF model entity was not provided "
+                "(runtime resolution from server not yet implemented)"
+            )
+            raise ValueError(msg)
+
         # Setup relevant sensor/plugin/message mappings
         # TODO(pszenher): we shouldn't need to init these; make them
         #     global exports of their respective modules
         sensor_map: GzSensorMap = gzilla.mappings.data.sensors()
         plugin_map: GzPluginMap = gzilla.mappings.data.plugins()
-        message_map: GzRosMessageMap = gzilla.mappings.message_mapping.GzRosMessageMap()
+        message_map: GzRosMessageMap = GzRosMessageMap()
 
         # TODO(pszenher): adding this here so we can resolve all names; should
         #       eventually allow for hot-loading these with a child
@@ -228,7 +234,7 @@ class RosGzBridgeParams:
 
         return cls(
             bridges=bridge_dict,
-            bridge_names=bridge_dict.keys(),
+            bridge_names=list(bridge_dict.keys()),
         )
 
     @classmethod
@@ -347,7 +353,7 @@ class RosGzPayloadBridge(launch.Action):
 
         # FIXME(pszenher): manually destructing lists of substitutions for now,
         #        should handle this properly, and check for ill-formed
-        world_name = self._world_name[0].perform(context)
+        world_name = self._world_name[0].perform(context) # type: ignore [attr-defined]
 
         for sdf_input in self._sdf_inputs:
             match sdf_input:

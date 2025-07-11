@@ -1,7 +1,7 @@
 """"""
 
 import xml.etree.ElementTree as ET
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 
 import gzilla.codegen.gz_plugin_spec as gz_plugin_spec_schema
@@ -37,7 +37,9 @@ class GzRuntimeConfig:
                 self.model_name,
                 *reversed(
                     [
-                        f"{sdf_elt.xml_tag}/{sdf_elt.name()}"
+                        # TODO(pszenher): refine type spec of sdflib
+                        #     to allow sdf_elt.name to typecheck here...
+                        f"{sdf_elt.xml_tag}/{sdf_elt.name()}"  # type: ignore [attr-defined]
                         for sdf_elt in self.sdf.ancestors_up_to(SdfModel | SdfWorld)
                     ]
                 ),
@@ -76,14 +78,13 @@ class GzTopicNameSpec(gz_topic_spec.GzTopicNameSpec):
                     return explicit_topic_name + self.suffix
             case SdfPlugin():
                 if self.override:
-                    print(self.override)
                     sdf_plugin_tree = ET.fromstring(conf.sdf.xml)  # noqa: S314
                     overrides = sdf_plugin_tree.findall(f"{self.override}")
                     # FIXME(pszenher): refactor, this is too deeply nested,
                     #        shuould use destructuring bind instead of
                     #        list index, warn on multiples, etc.
-                    if overrides:
-                        return overrides[0].text.strip() + self.suffix
+                    if overrides and overrides[0].text:
+                        return overrides[0].text.strip() + (self.suffix or "")
         return self.default_name(conf)
 
     def default_name(self, conf: GzRuntimeConfig | None = None) -> str:
@@ -100,9 +101,8 @@ class GzTopicNameSpec(gz_topic_spec.GzTopicNameSpec):
             case PrefixType.MODEL_SCOPED:
                 if not conf:
                     msg = (
-                        "Expected runtime configuration parameters for model-scoped prefix "
-                        "topic determination; received:  "
-                        f"runtime_config={conf}"
+                        f"Expected runtime configuration parameters for model-scoped "
+                        f"prefix topic determination; received:  runtime_config={conf}"
                     )
                     raise ValueError(msg)
                 return self.model_scoped_name(conf)
@@ -145,7 +145,7 @@ class GzTopicSpec(gz_topic_spec.GzTopicSpec):
 
 
 class HasTopicsMixin:
-    topics: list[GzTopicSpec]
+    topics: Sequence[GzTopicSpec]
 
     def final_msg_topics(
         self,
@@ -166,8 +166,8 @@ class HasTopicsMixin:
 
 
 class GzSensorSpec(gz_sensor_spec_schema.GzSensorSpec, HasTopicsMixin):
-    topics: list[GzTopicSpec]
+    topics: Sequence[GzTopicSpec]
 
 
 class GzPluginSpec(gz_plugin_spec_schema.GzPluginSpec, HasTopicsMixin):
-    topics: list[GzTopicSpec]
+    topics: Sequence[GzTopicSpec]

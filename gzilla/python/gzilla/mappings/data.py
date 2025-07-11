@@ -18,7 +18,7 @@ def sensors() -> GzSensorMap:
         return GzSensorMap.parse_obj(yaml.safe_load(f))
 
 
-def plugins() -> GzSensorMap:
+def plugins() -> GzPluginMap:
     gzilla_share_dir = Path(get_package_share_directory("gzilla"))
     plugin_map_yaml = gzilla_share_dir / "config" / "gz_plugin_mappings.yaml"
 
@@ -26,7 +26,7 @@ def plugins() -> GzSensorMap:
         return GzPluginMap.parse_obj(yaml.safe_load(f))
 
 
-def vrx_plugins() -> GzSensorMap:
+def vrx_plugins() -> GzPluginMap:
     gzilla_share_dir = Path(get_package_share_directory("gzilla"))
     plugin_map_yaml = gzilla_share_dir / "config" / "gz_vrx_plugin_mappings.yaml"
 

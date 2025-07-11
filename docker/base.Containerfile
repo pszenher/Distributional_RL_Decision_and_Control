@@ -53,7 +53,9 @@ RUN --mount=type=cache,dst=/var/lib/apt/lists,sharing=locked \
 # TODO(pszenher): how to we ask pip to install `python-lsp-ruff`
 #     without trying (and failing) to upgrade other package versions
 #     (as some are installed via `apt`)
-RUN pip install --break-system-packages python-lsp-ruff "typing_extensions==4.10"
+RUN pip install --break-system-packages \
+    python-lsp-ruff \
+    "typing_extensions==$(pip show typing_extensions | grep ^Version: | awk '{print $2}')"
 
 WORKDIR "/ws"
 
